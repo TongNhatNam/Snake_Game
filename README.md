@@ -11,7 +11,7 @@ Một phiên bản nâng cao của game Snake cổ điển với nhiều tính n
 ### 🍎 Hệ thống thức ăn đa dạng
 - **Thức ăn bình thường** (đỏ): +10 điểm
 - **Thức ăn đặc biệt** (vàng): +50 điểm, hiếm hơn
-- **Thức ăn có hại** (tím): -1 mạng, cẩn thận!
+- **Thức ăn có hại** (tím): -20 điểm và làm ngắn rắn, cẩn thận!
 
 ### ⚡ Power-ups thú vị
 - **Làm chậm** (cam): Di chuyển chậm lại trong 2 giây

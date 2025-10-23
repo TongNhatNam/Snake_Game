@@ -174,7 +174,7 @@ class PowerUpManager:
         self.spawn_chance = config.get("powerups.spawn_chance")
         self.max_powerups = 1  # Maximum power-ups on screen
         self.spawn_timer = 0
-        self.spawn_interval = 20000  # 20 seconds between spawns
+        self.spawn_interval = 45000  # 45 seconds between spawns
         self.game_area_x = game_area_x
         self.game_area_y = game_area_y
         self.game_area_width = game_area_width

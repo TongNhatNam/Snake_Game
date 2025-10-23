@@ -246,12 +246,18 @@ class SnakeGame:
         food = self.food_manager.check_collision(self.snake.get_head_rect())
         if food:
             score_change = food.get_score()
+            print(f"Food eaten: {food.get_type()}, score change: {score_change}")
+            
+            # Handle score change
             self.score += score_change
             
             if score_change > 0:
                 self.snake.grow()
-            else:
+            elif score_change < 0:
                 self.snake.shrink()
+            
+            # Ensure score never goes below 0
+            self.score = max(0, self.score)
             
             # Spawn new food
             self.food_manager.spawn_food(self.snake.body, self.obstacle_manager.obstacles)
@@ -269,9 +275,8 @@ class SnakeGame:
         self.powerup_manager.update()
         self.obstacle_manager.update()
         
-        # Spawn power-ups periodically
-        if len(self.powerup_manager.powerups) == 0:
-            self.powerup_manager.spawn_powerup(self.snake.body, self.obstacle_manager.obstacles, self.food_manager.foods)
+        # Power-ups spawn naturally through PowerUpManager.update()
+        # No forced spawning needed
         
     
     def game_over(self):
