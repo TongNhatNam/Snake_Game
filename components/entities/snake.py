@@ -5,7 +5,7 @@ Handles snake movement, growth, collision detection, and power-up effects
 
 import pygame
 import random
-from config import config
+from ..core import config
 
 class Snake:
     """Snake class with enhanced features"""

@@ -6,7 +6,7 @@ Includes different types of food with various effects
 import pygame
 import random
 import math
-from config import config
+from ..core import config
 
 class Food:
     """Base food class"""

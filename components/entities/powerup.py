@@ -6,7 +6,7 @@ Includes various power-ups with different effects
 import pygame
 import random
 import math
-from config import config
+from ..core import config
 
 class PowerUp:
     """Base power-up class"""

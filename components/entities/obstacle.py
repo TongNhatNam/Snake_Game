@@ -6,7 +6,7 @@ Creates various types of obstacles that the snake must avoid
 import pygame
 import random
 import math
-from config import config
+from ..core import config
 
 class Obstacle:
     """Base obstacle class"""

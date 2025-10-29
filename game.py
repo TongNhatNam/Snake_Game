@@ -7,12 +7,9 @@ import pygame
 import sys
 import time
 import random
-from config import config
-from snake import Snake
-from food import FoodManager
-from powerup import PowerUpManager
-from obstacle import ObstacleManager
-from menu import MainMenu, LevelSelectMenu, SettingsMenu, HighScoreMenu, GameOverMenu
+from components.core import config
+from components.entities import Snake, FoodManager, PowerUpManager, ObstacleManager
+from components.ui import MainMenu, LevelSelectMenu, SettingsMenu, HighScoreMenu, GameOverMenu
 
 class SnakeGame:
     """Main game class"""
