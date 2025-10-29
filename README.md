@@ -81,26 +81,45 @@ Trong menu Settings, bạn có thể điều chỉnh:
 
 ```
 snakegame/
-├── game.py          # File chính chạy game
-├── config.py        # Quản lý cài đặt
-├── snake.py         # Class Snake
-├── food.py          # Hệ thống thức ăn
-├── powerup.py       # Hệ thống power-up
-├── obstacle.py      # Hệ thống chướng ngại vật
-├── menu.py          # Hệ thống menu
-├── requirements.txt # Dependencies
-├── README.md        # Hướng dẫn này
-└── config.json      # File cài đặt (tự tạo)
+├── game.py              # File chính chạy game
+├── components/          # Thư mục components
+│   ├── core/           # Core system
+│   │   ├── config.py   # Quản lý cài đặt
+│   │   ├── game_state.py # Quản lý trạng thái game
+│   │   ├── event_handler.py # Xử lý sự kiện
+│   │   ├── game_renderer.py # Hệ thống render
+│   │   ├── game_engine.py # Engine cơ bản
+│   │   └── __init__.py
+│   ├── entities/       # Game objects
+│   │   ├── snake.py    # Class Snake
+│   │   ├── food.py     # Hệ thống thức ăn
+│   │   ├── powerup.py  # Hệ thống power-up
+│   │   ├── obstacle.py # Hệ thống chướng ngại vật
+│   │   └── __init__.py
+│   └── ui/            # User interface
+│       ├── base_menu.py     # Base menu class
+│       ├── game_menus.py    # Main/Level/GameOver menus
+│       ├── settings_menu.py # Settings menu
+│       ├── score_menu.py    # High score menu
+│       └── __init__.py
+├── requirements.txt     # Dependencies
+├── README.md           # Hướng dẫn này
+├── config.json         # File cài đặt (tự tạo)
+└── high_scores.json    # Điểm cao (tự tạo)
 ```
 
 ## 🎯 Tính năng kỹ thuật
 
-- **Code structure**: Tách thành nhiều module dễ quản lý
-- **Configuration system**: Lưu cài đặt trong file JSON
-- **Error handling**: Xử lý lỗi tốt hơn
-- **Documentation**: Comments chi tiết trong code
-- **Animation system**: Hiệu ứng mượt mà
-- **Collision detection**: Phát hiện va chạm chính xác
+- **Clean Architecture**: Cấu trúc components rõ ràng (Core, Entities, UI)
+- **Object-Oriented Programming**: Sử dụng OOP với inheritance và encapsulation
+- **Separation of Concerns**: Tách biệt logic game, rendering và UI
+- **Configuration system**: Lưu cài đặt trong file JSON với dot notation
+- **State Management**: Quản lý trạng thái game hiệu quả
+- **Event-Driven Architecture**: Xử lý sự kiện tập trung
+- **Modular Design**: Dễ bảo trì và mở rộng
+- **Error handling**: Xử lý lỗi robust
+- **Animation system**: Hiệu ứng mượt mà với math-based animations
+- **Collision detection**: Phát hiện va chạm chính xác với pygame.Rect
 
 ## 🏆 High Scores
 
@@ -120,15 +139,23 @@ Nếu gặp lỗi:
 ## 📝 Changelog
 
 ### Version 2.0 (Enhanced Edition)
-- ✅ Tái cấu trúc code thành nhiều module
-- ✅ Hệ thống menu hoàn chỉnh
-- ✅ Nhiều loại thức ăn và power-ups
-- ✅ Hệ thống chướng ngại vật
-- ✅ Multiple levels với độ khó tăng dần
-- ✅ High score system
-- ✅ Configuration system
-- ✅ Countdown và pause game
-- ✅ Hiệu ứng hình ảnh đẹp mắt
+- ✅ **Clean Architecture**: Tái cấu trúc theo components (Core, Entities, UI)
+- ✅ **Modular Design**: Tách file lớn thành các module nhỏ dễ quản lý
+- ✅ **OOP Implementation**: Áp dụng đầy đủ lập trình hướng đối tượng
+- ✅ **State Management**: Hệ thống quản lý trạng thái tập trung
+- ✅ **Event System**: Xử lý sự kiện hiệu quả và có tổ chức
+- ✅ **Rendering System**: Tách biệt logic render khỏi game logic
+- ✅ **Configuration Management**: Hệ thống config linh hoạt với dot notation
+- ✅ **Multiple Food Types**: 3 loại thức ăn với hiệu ứng khác nhau
+- ✅ **Power-up System**: 2 loại power-up với animation đẹp mắt
+- ✅ **Obstacle System**: 4 loại chướng ngại vật đa dạng
+- ✅ **Level System**: 5 độ khó từ Easy đến Master
+- ✅ **Lives System**: 3 mạng sống thay vì game over ngay
+- ✅ **High Score System**: Lưu top 10 điểm cao nhất
+- ✅ **Menu System**: UI hoàn chỉnh với nhiều menu
+- ✅ **Settings System**: Tùy chỉnh FPS, màn hình, màu sắc
+- ✅ **Animation Effects**: Hiệu ứng visual mượt mà
+- ✅ **Professional Code**: Code clean, có comments và documentation đầy đủ
 
 ---
 

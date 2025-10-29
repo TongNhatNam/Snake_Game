@@ -5,9 +5,7 @@ Integrates all game components and manages the game loop
 
 import pygame
 import sys
-import time
-import random
-from components.core import config
+from components.core import config, GameState, EventHandler, GameRenderer
 from components.entities import Snake, FoodManager, PowerUpManager, ObstacleManager
 from components.ui import MainMenu, LevelSelectMenu, SettingsMenu, HighScoreMenu, GameOverMenu
 
@@ -18,392 +16,215 @@ class SnakeGame:
         """Initialize the game"""
         pygame.init()
         
-        # Get configuration
+        # Screen setup
         self.screen_width, self.screen_height = config.get_screen_size()
-        self.fps = config.get_fps()
-        self.block_size = config.get_block_size()
-        
-        # Create screen
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Enhanced Snake Game")
-        
-        # Clock for FPS control
         self.clock = pygame.time.Clock()
         
-        # Game state
-        self.state = "menu"  # menu, playing, paused, game_over
-        self.level = 1
-        self.score = 0
-        self.high_score = 0
+        # Core components
+        self.game_state = GameState()
+        self.renderer = GameRenderer(self.screen)
         
         # Game objects
-        self.snake = None
-        self.food_manager = None
-        self.powerup_manager = None
-        self.obstacle_manager = None
+        self.game_objects = {}
         
-        # Menus
-        self.main_menu = MainMenu(self.screen)
-        self.level_select_menu = LevelSelectMenu(self.screen)
-        self.settings_menu = SettingsMenu(self.screen)
-        self.high_score_menu = HighScoreMenu(self.screen)
-        self.game_over_menu = None
+        # Initialize menus
+        self._init_menus()
         
-        # Game settings
-        self.current_fps = self.fps
-        
-        # Snake movement timer (independent of FPS)
-        self.snake_move_timer = 0
-        self.snake_move_interval = 200  # Move every 200ms (5 times per second)
-        
-        # Countdown
-        self.countdown_timer = 0
-        self.countdown_duration = 3000  # 3 seconds
-        
-        # Pause
-        self.pause_timer = 0
-        
-        # Game area boundaries
-        self.game_area_width = 400
-        self.game_area_height = 400
-        self.game_area_x = 50
-        self.game_area_y = 50
-        
-        # Fonts
-        self.font_large = pygame.font.Font(None, 60)
-        self.font_medium = pygame.font.Font(None, 40)
-        self.font_small = pygame.font.Font(None, 30)
+        # Event handler
+        self.event_handler = EventHandler(
+            self.game_state, 
+            self.menus, 
+            config.get_block_size()
+        )
     
-    def start_new_game(self, selected_level=1):
+    def _init_menus(self):
+        """Initialize all menu objects"""
+        self.menus = {
+            "main": MainMenu(self.screen),
+            "level_select": LevelSelectMenu(self.screen),
+            "settings": SettingsMenu(self.screen),
+            "high_scores": HighScoreMenu(self.screen),
+            "game_over": None
+        }
+    
+    def start_new_game(self, level=1):
         """Start a new game with selected level"""
-        self.state = "countdown"
-        self.level = selected_level
-        self.score = 0
-        self.countdown_timer = 0
+        self.game_state.set_state("countdown")
+        self.game_state.reset_for_new_game(level)
         
-        # Create game objects with game area bounds
-        self.snake = Snake(self.game_area_x + self.game_area_width//2, self.game_area_y + self.game_area_height//2, 
-                          self.game_area_x, self.game_area_y, self.game_area_width, self.game_area_height)
-        self.food_manager = FoodManager(self.game_area_x, self.game_area_y, self.game_area_width, self.game_area_height)
-        self.powerup_manager = PowerUpManager(self.game_area_x, self.game_area_y, self.game_area_width, self.game_area_height)
-        self.obstacle_manager = ObstacleManager(self.game_area_x, self.game_area_y, self.game_area_width, self.game_area_height)
+        # Create game objects
+        area = self.game_state
+        self.game_objects = {
+            "snake": Snake(
+                area.game_area_x + area.game_area_width//2, 
+                area.game_area_y + area.game_area_height//2,
+                area.game_area_x, area.game_area_y, 
+                area.game_area_width, area.game_area_height
+            ),
+            "food_manager": FoodManager(
+                area.game_area_x, area.game_area_y, 
+                area.game_area_width, area.game_area_height
+            ),
+            "powerup_manager": PowerUpManager(
+                area.game_area_x, area.game_area_y, 
+                area.game_area_width, area.game_area_height
+            ),
+            "obstacle_manager": ObstacleManager(
+                area.game_area_x, area.game_area_y, 
+                area.game_area_width, area.game_area_height
+            )
+        }
         
-        # Generate level obstacles
-        self.obstacle_manager.generate_level_obstacles(self.level, self.snake.body)
+        # Setup level
+        self.game_objects["obstacle_manager"].generate_level_obstacles(
+            level, self.game_objects["snake"].body
+        )
+        self.game_objects["food_manager"].spawn_food(
+            self.game_objects["snake"].body, 
+            self.game_objects["obstacle_manager"].obstacles
+        )
         
-        # Spawn initial food
-        self.food_manager.spawn_food(self.snake.body, self.obstacle_manager.obstacles)
-        
-        # Update base FPS from config (in case it was changed in settings)
-        self.fps = config.get_fps()
-        self.current_fps = self.fps  # FPS only affects smoothness, not snake speed
-        
-        # Set snake movement speed based on level
-        level_speed_multiplier = config.get("levels.speed_multiplier")
-        if self.level <= len(level_speed_multiplier):
-            # Faster levels = shorter move interval
-            base_interval = 200  # 200ms base interval
-            speed_multiplier = level_speed_multiplier[self.level - 1]
-            self.snake_move_interval = int(base_interval / speed_multiplier)
-        else:
-            self.snake_move_interval = 200
+        # Set movement speed based on level
+        self._set_movement_speed(level)
     
-    def handle_events(self):
+    def _set_movement_speed(self, level):
+        """Set snake movement speed based on level"""
+        speed_multipliers = config.get("levels.speed_multiplier")
+        if level <= len(speed_multipliers):
+            multiplier = speed_multipliers[level - 1]
+            self.game_state.snake_move_interval = int(200 / multiplier)
+    
+    def _handle_events(self):
         """Handle all game events"""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-            
-            # Handle events based on current state
-            if self.state == "menu":
-                result = self.main_menu.handle_event(event)
-                if result == "Start Game":
-                    self.start_new_game(1)  # Start with level 1
-                elif result == "Select Level":
-                    self.state = "level_select"
-                elif result == "Settings":
-                    self.state = "settings"
-                elif result == "High Scores":
-                    self.state = "high_scores"
-                elif result == "Quit":
-                    return False
-            
-            elif self.state == "level_select":
-                result = self.level_select_menu.handle_event(event)
-                if result and result.startswith("start_level_"):
-                    level = int(result.split("_")[2])
-                    self.start_new_game(level)
-                elif result == "back":
-                    self.state = "menu"
-            
-            elif self.state == "settings":
-                result = self.settings_menu.handle_event(event)
-                if result == "back":
-                    self.state = "menu"
-                    # Update screen size if changed
-                    new_width, new_height = config.get_screen_size()
-                    if new_width != self.screen_width or new_height != self.screen_height:
-                        self.screen_width, self.screen_height = new_width, new_height
-                        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-                        self.main_menu = MainMenu(self.screen)
-                        self.settings_menu = SettingsMenu(self.screen)
-                        self.high_score_menu = HighScoreMenu(self.screen)
-                    
-                    # Update FPS if changed
-                    new_fps = config.get_fps()
-                    if new_fps != self.fps:
-                        self.fps = new_fps
-                        # Update current FPS if not in game
-                        if self.state == "menu":
-                            self.current_fps = self.fps
-            
-            elif self.state == "high_scores":
-                result = self.high_score_menu.handle_event(event)
-                if result == "back":
-                    self.state = "menu"
-            
-            elif self.state == "countdown":
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    self.state = "menu"
-            
-            elif self.state == "playing":
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        self.state = "menu"
-                    elif event.key == pygame.K_SPACE:
-                        self.state = "paused"
-                    elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
-                        self.snake.change_direction(-self.block_size, 0)
-                    elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                        self.snake.change_direction(self.block_size, 0)
-                    elif event.key == pygame.K_UP or event.key == pygame.K_w:
-                        self.snake.change_direction(0, -self.block_size)
-                    elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                        self.snake.change_direction(0, self.block_size)
-            
-            elif self.state == "paused":
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE:
-                        self.state = "playing"
-                    elif event.key == pygame.K_ESCAPE:
-                        self.state = "menu"
-            
-            elif self.state == "game_over":
-                result = self.game_over_menu.handle_event(event)
-                if result == "restart":
-                    self.start_new_game(self.level)
-                elif result == "menu":
-                    self.state = "menu"
-                elif result == "quit":
-                    return False
+        result = self.event_handler.handle_events(
+            self.game_objects.get("snake")
+        )
+        
+        if result == "start_game":
+            self.start_new_game(1)
+        elif isinstance(result, tuple) and result[0] == "start_level":
+            self.start_new_game(result[1])
+        elif result == "restart":
+            self.start_new_game(self.game_state.level)
+        elif result == "settings_changed":
+            self._handle_settings_change()
+        elif result == False:
+            return False
         
         return True
     
-    def update_game(self):
+    def _handle_settings_change(self):
+        """Handle settings changes"""
+        new_width, new_height = config.get_screen_size()
+        if new_width != self.screen_width or new_height != self.screen_height:
+            self.screen_width, self.screen_height = new_width, new_height
+            self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+            self._init_menus()
+            self.renderer = GameRenderer(self.screen)
+    
+    def _update_game(self):
         """Update game logic"""
-        if self.state != "playing":
+        if not self.game_state.is_playing():
             return
         
-        # Update power-up timers every frame (independent of movement)
+        snake = self.game_objects["snake"]
         delta_time = self.clock.get_time()
-        self.snake._update_power_ups(delta_time)
         
-        # Update snake movement timer
-        self.snake_move_timer += delta_time
+        # Update power-ups
+        snake._update_power_ups(delta_time)
         
-        # Check if it's time to move snake
-        move_interval = self.snake_move_interval
+        # Update movement timer
+        self.game_state.snake_move_timer += delta_time
         
-        # Adjust movement speed based on power-ups
-        active_powerups = self.snake.get_power_ups()
-        if 'slow_motion' in active_powerups:
-            move_interval *= 2  # Move half as often
-        # Note: speed_boost was removed, so no speed increase
+        # Move snake if it's time
+        move_interval = self.game_state.snake_move_interval
+        if 'slow_motion' in snake.get_power_ups():
+            move_interval *= 2
         
-        if self.snake_move_timer >= move_interval:
-            self.snake.move()
-            self.snake_move_timer = 0
+        if self.game_state.snake_move_timer >= move_interval:
+            snake.move()
+            self.game_state.snake_move_timer = 0
         
-        # Check collisions
-        if self.snake.check_collision():
-            if self.snake.lose_life():
-                self.game_over()
-                return
-            else:
-                # Reset snake position but keep playing
-                pass
+        # Check collisions and update game
+        self._check_collisions()
+        self._update_managers()
+    
+    def _check_collisions(self):
+        """Check all collision types"""
+        snake = self.game_objects["snake"]
         
-        # Check obstacle collision
-        if self.snake.check_obstacle_collision(self.obstacle_manager.obstacles):
-            if self.snake.lose_life():
-                self.game_over()
+        # Wall/self collision
+        if snake.check_collision():
+            if snake.lose_life():
+                self._game_over()
                 return
         
-        # Check food collision
-        food = self.food_manager.check_collision(self.snake.get_head_rect())
+        # Obstacle collision
+        if snake.check_obstacle_collision(self.game_objects["obstacle_manager"].obstacles):
+            if snake.lose_life():
+                self._game_over()
+                return
+        
+        # Food collision
+        food = self.game_objects["food_manager"].check_collision(snake.get_head_rect())
         if food:
             score_change = food.get_score()
-            print(f"Food eaten: {food.get_type()}, score change: {score_change}")
-            
-            # Handle score change
-            self.score += score_change
+            self.game_state.score += score_change
             
             if score_change > 0:
-                self.snake.grow()
+                snake.grow()
             elif score_change < 0:
-                self.snake.shrink()
+                snake.shrink()
             
-            # Ensure score never goes below 0
-            self.score = max(0, self.score)
-            
-            # Spawn new food
-            self.food_manager.spawn_food(self.snake.body, self.obstacle_manager.obstacles)
+            self.game_state.score = max(0, self.game_state.score)
+            self.game_objects["food_manager"].spawn_food(
+                snake.body, self.game_objects["obstacle_manager"].obstacles
+            )
         
-        # Check power-up collision
-        powerup = self.powerup_manager.check_collision(self.snake.get_head_rect())
+        # Power-up collision
+        powerup = self.game_objects["powerup_manager"].check_collision(snake.get_head_rect())
         if powerup:
-            powerup_type = powerup.get_type()
-            duration = powerup.get_duration()
-            print(f"Power-up collected: {powerup_type}, duration: {duration}ms")
-            self.snake.apply_power_up(powerup_type, duration)
-        
-        # Update managers
-        self.food_manager.update()
-        self.powerup_manager.update()
-        self.obstacle_manager.update()
-        
-        # Power-ups spawn naturally through PowerUpManager.update()
-        # No forced spawning needed
-        
+            snake.apply_power_up(powerup.get_type(), powerup.get_duration())
     
-    def game_over(self):
+    def _update_managers(self):
+        """Update all managers"""
+        self.game_objects["food_manager"].update()
+        self.game_objects["powerup_manager"].update()
+        self.game_objects["obstacle_manager"].update()
+    
+    def _game_over(self):
         """Handle game over"""
-        self.state = "game_over"
-        self.game_over_menu = GameOverMenu(self.screen, self.score, self.level)
-        
-        # Update high score
-        if self.score > self.high_score:
-            self.high_score = self.score
+        self.game_state.set_state("game_over")
+        self.menus["game_over"] = GameOverMenu(
+            self.screen, self.game_state.score, self.game_state.level
+        )
     
-    def draw_countdown(self):
-        """Draw countdown screen"""
-        self.screen.fill(config.get_color('background'))
+    def _draw(self):
+        """Draw everything based on current state"""
+        state = self.game_state.state
         
-        # Countdown text
-        remaining_time = self.countdown_duration - self.countdown_timer
-        if remaining_time > 2000:
-            count_text = "3"
-        elif remaining_time > 1000:
-            count_text = "2"
-        else:
-            count_text = "1"
-        
-        # Animate countdown
-        scale = 1.0 + 0.5 * (1.0 - (remaining_time % 1000) / 1000.0)
-        font_size = int(100 * scale)
-        font = pygame.font.Font(None, font_size)
-        
-        text_surface = font.render(count_text, True, config.get_color('text_highlight'))
-        text_rect = text_surface.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
-        self.screen.blit(text_surface, text_rect)
-        
-        # Instructions
-        self.draw_text("Get Ready!", self.font_medium, config.get_color('text'),
-                      self.screen_width // 2, self.screen_height // 2 + 100)
-        self.draw_text("Press ESC to cancel", self.font_small, config.get_color('text'),
-                      self.screen_width // 2, self.screen_height // 2 + 150)
-    
-    def draw_pause(self):
-        """Draw pause screen"""
-        # Semi-transparent overlay
-        overlay = pygame.Surface((self.screen_width, self.screen_height))
-        overlay.set_alpha(128)
-        overlay.fill(config.get_color('background'))
-        self.screen.blit(overlay, (0, 0))
-        
-        # Pause text
-        self.draw_text("PAUSED", self.font_large, config.get_color('text_highlight'),
-                      self.screen_width // 2, self.screen_height // 2 - 50)
-        self.draw_text("Press SPACE to continue", self.font_medium, config.get_color('text'),
-                      self.screen_width // 2, self.screen_height // 2 + 20)
-        self.draw_text("Press ESC for main menu", self.font_medium, config.get_color('text'),
-                      self.screen_width // 2, self.screen_height // 2 + 60)
-    
-    def draw_hud(self):
-        """Draw heads-up display"""
-        # Sidebar area (right side of game area)
-        sidebar_x = self.game_area_x + self.game_area_width + 20
-        
-        # Score
-        self.draw_text(f"Score: {self.score:06d}", self.font_medium, config.get_color('text'),
-                      sidebar_x, 80, False)
-        
-        # Level
-        self.draw_text(f"Level: {self.level}", self.font_medium, config.get_color('text'),
-                      sidebar_x, 120, False)
-        
-        # Lives
-        lives_text = "♥" * self.snake.get_lives()
-        self.draw_text(f"Lives: {lives_text}", self.font_medium, config.get_color('text'),
-                      sidebar_x, 160, False)
-        
-        # Speed (movement interval)
-        speed_text = f"Speed: {int(1000/self.snake_move_interval):.1f}/sec"
-        self.draw_text(speed_text, self.font_small, config.get_color('text'),
-                      sidebar_x, 200, False)
-        
-        # Power-ups
-        active_powerups = self.snake.get_power_ups()
-        if active_powerups:
-            powerup_timers = self.snake.get_power_up_timers()
-            self.draw_text("Power-ups:", self.font_small, config.get_color('text_highlight'),
-                          sidebar_x, 240, False)
-            y_offset = 260
-            for k, v in powerup_timers.items():
-                self.draw_text(f"{k}: {int(v/1000)}s", self.font_small, config.get_color('text'),
-                              sidebar_x, y_offset, False)
-                y_offset += 20
-        
-        # Instructions at bottom
-        self.draw_text("Controls:", self.font_small, config.get_color('text_highlight'),
-                      sidebar_x, 350, False)
-        self.draw_text("WASD/Arrows: Move", self.font_small, config.get_color('text'),
-                      sidebar_x, 370, False)
-        self.draw_text("SPACE: Pause", self.font_small, config.get_color('text'),
-                      sidebar_x, 390, False)
-        self.draw_text("ESC: Menu", self.font_small, config.get_color('text'),
-                      sidebar_x, 410, False)
-    
-    def draw_game(self):
-        """Draw game elements"""
-        # Clear screen
-        self.screen.fill(config.get_color('background'))
-        
-        # Draw game area border
-        game_rect = pygame.Rect(self.game_area_x-2, self.game_area_y-2, self.game_area_width+4, self.game_area_height+4)
-        pygame.draw.rect(self.screen, (255, 255, 255), game_rect, 2)
-        
-        # Fill game area background
-        game_bg = pygame.Rect(self.game_area_x, self.game_area_y, self.game_area_width, self.game_area_height)
-        pygame.draw.rect(self.screen, (20, 20, 20), game_bg)
-        
-        # Draw game objects
-        self.obstacle_manager.draw(self.screen)
-        self.food_manager.draw(self.screen)
-        self.powerup_manager.draw(self.screen)
-        self.snake.draw(self.screen)
-        
-        # Draw HUD
-        self.draw_hud()
-    
-    def draw_text(self, text, font, color, x, y, center=True):
-        """Draw text on screen"""
-        text_surface = font.render(text, True, color)
-        if center:
-            text_rect = text_surface.get_rect(center=(x, y))
-        else:
-            text_rect = text_surface.get_rect(topleft=(x, y))
-        self.screen.blit(text_surface, text_rect)
+        if state == "menu":
+            self.menus["main"].draw()
+        elif state == "level_select":
+            self.menus["level_select"].draw()
+        elif state == "settings":
+            self.menus["settings"].draw()
+        elif state == "high_scores":
+            self.menus["high_scores"].draw()
+        elif state == "countdown":
+            self.renderer.draw_countdown(
+                self.game_state.countdown_timer, 
+                self.game_state.countdown_duration
+            )
+        elif state == "playing":
+            self.renderer.draw_game(self.game_objects, self.game_state)
+        elif state == "paused":
+            self.renderer.draw_game(self.game_objects, self.game_state)
+            self.renderer.draw_pause()
+        elif state == "game_over":
+            self.menus["game_over"].draw()
     
     def run(self):
         """Main game loop"""
@@ -411,43 +232,24 @@ class SnakeGame:
         
         while running:
             # Handle events
-            running = self.handle_events()
+            running = self._handle_events()
+            
+            # Update countdown
+            if self.game_state.state == "countdown":
+                self.game_state.countdown_timer += self.clock.get_time()
+                if self.game_state.countdown_timer >= self.game_state.countdown_duration:
+                    self.game_state.set_state("playing")
             
             # Update game
-            if self.state == "playing":
-                self.update_game()
-            elif self.state == "countdown":
-                self.countdown_timer += self.clock.get_time()
-                if self.countdown_timer >= self.countdown_duration:
-                    self.state = "playing"
+            self._update_game()
             
             # Draw
-            if self.state == "menu":
-                self.main_menu.draw()
-            elif self.state == "level_select":
-                self.level_select_menu.draw()
-            elif self.state == "settings":
-                self.settings_menu.draw()
-            elif self.state == "high_scores":
-                self.high_score_menu.draw()
-            elif self.state == "countdown":
-                self.draw_countdown()
-            elif self.state == "playing":
-                self.draw_game()
-            elif self.state == "paused":
-                self.draw_game()
-                self.draw_pause()
-            elif self.state == "game_over":
-                self.game_over_menu.draw()
-            
-            # Update display
+            self._draw()
             pygame.display.flip()
             
             # Control FPS
-            if self.state == "playing":
-                self.clock.tick(self.current_fps)
-            else:
-                self.clock.tick(60)
+            fps = 60 if self.game_state.is_playing() else config.get_fps()
+            self.clock.tick(fps)
         
         # Cleanup
         pygame.quit()
