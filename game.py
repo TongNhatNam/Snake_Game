@@ -83,7 +83,8 @@ class SnakeGame:
         )
         self.game_objects["food_manager"].spawn_food(
             self.game_objects["snake"].body, 
-            self.game_objects["obstacle_manager"].obstacles
+            self.game_objects["obstacle_manager"].obstacles,
+            "normal"
         )
         
         # Set movement speed based on level
@@ -179,7 +180,8 @@ class SnakeGame:
                 snake.shrink()
             
             self.game_state.score = max(0, self.game_state.score)
-            self.game_objects["food_manager"].spawn_food(
+            # Ensure normal food is always available
+            self.game_objects["food_manager"].ensure_normal_food(
                 snake.body, self.game_objects["obstacle_manager"].obstacles
             )
         
@@ -190,8 +192,9 @@ class SnakeGame:
     
     def _update_managers(self):
         """Update all managers"""
-        self.game_objects["food_manager"].update()
-        self.game_objects["powerup_manager"].update()
+        delta_time = self.clock.get_time()
+        self.game_objects["food_manager"].update(delta_time)
+        self.game_objects["powerup_manager"].update(delta_time)
         self.game_objects["obstacle_manager"].update()
     
     def _game_over(self):

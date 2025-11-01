@@ -33,13 +33,27 @@ DEFAULT_CONFIG = {
     "food": {
         "normal_score": 10,
         "special_score": 50,
-        "bad_penalty": 1,
-        "special_spawn_chance": 0.1
+        "bad_penalty": 20,
+        "special_spawn_chance": 0.1,
+        "special_spawn_interval_min": 15000,  # 15 seconds
+        "special_spawn_interval_max": 25000,  # 25 seconds
+        "special_lifetime": 12000,            # 12 seconds
+        "special_warning_time": 3000,         # 3 seconds warning
+        "bad_spawn_interval_min": 20000,      # 20 seconds
+        "bad_spawn_interval_max": 35000,      # 35 seconds
+        "bad_lifetime": 10000,                # 10 seconds
+        "bad_warning_time": 3000              # 3 seconds warning
     },
     "powerups": {
-        "slow_duration": 3000,   # 3 seconds
-        "wall_duration": 5000,   # 5 seconds
-        "spawn_chance": 0.005
+        "slow_duration": 2000,   # 2 seconds
+        "wall_duration": 2000,   # 2 seconds
+        "spawn_interval_min": 60000,  # 60 seconds min
+        "spawn_interval_max": 90000,  # 90 seconds max
+        "spawn_chance": 0.005,        # 0.5% chance
+        "lifetime": 18000,            # 18 seconds lifetime
+        "warning_time": 5000,         # 5 seconds warning
+        "fade_time": 2000,            # 2 seconds fade
+        "cooldown_after_pickup": 30000  # 30 seconds cooldown
     },
     "levels": {
         "max_level": 5,  # Maximum level available

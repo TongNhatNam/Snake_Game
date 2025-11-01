@@ -30,7 +30,16 @@ class PowerUp:
         self.rotation = 0
         self.glow_intensity = 0
         
-        # Duration
+        # Lifetime system
+        self.lifetime = config.get("powerups.lifetime")
+        self.warning_time = config.get("powerups.warning_time")
+        self.fade_time = config.get("powerups.fade_time")
+        self.age = 0
+        self.is_warning = False
+        self.is_fading = False
+        self.alpha = 255
+        
+        # Duration when picked up
         self.duration = self._get_duration()
         
         # Initialize position
@@ -54,42 +63,62 @@ class PowerUp:
         if foods is None:
             foods = []
         
-        max_attempts = 100
+        max_attempts = 50  # Reduced attempts for better performance
         for _ in range(max_attempts):
             self.x = round(random.randrange(self.game_area_x, self.game_area_x + self.game_area_width - self.block_size) / self.block_size) * self.block_size
             self.y = round(random.randrange(self.game_area_y, self.game_area_y + self.game_area_height - self.block_size) / self.block_size) * self.block_size
             
-            # Check collision with snake
-            collision = False
-            for block in snake_body:
-                if self.x == block[0] and self.y == block[1]:
-                    collision = True
-                    break
+            powerup_rect = pygame.Rect(self.x, self.y, self.block_size, self.block_size)
             
-            # Check collision with obstacles
-            if not collision:
-                powerup_rect = pygame.Rect(self.x, self.y, self.block_size, self.block_size)
-                for obstacle in obstacles:
-                    if powerup_rect.colliderect(obstacle.rect):
-                        collision = True
-                        break
-            
-            # Check collision with foods
-            if not collision:
-                for food in foods:
-                    if powerup_rect.colliderect(food.get_rect()):
-                        collision = True
-                        break
+            # Check all collisions in one pass
+            collision = any([
+                any(self.x == block[0] and self.y == block[1] for block in snake_body),
+                any(powerup_rect.colliderect(obstacle.rect) for obstacle in obstacles),
+                any(powerup_rect.colliderect(food.get_rect()) for food in foods)
+            ])
             
             if not collision:
                 break
     
-    def update(self):
-        """Update power-up animation"""
+    def update(self, delta_time=16):
+        """Update power-up animation and lifetime"""
+        # Update age
+        self.age += delta_time
+        
+        # Check lifetime phases
+        remaining_time = self.lifetime - self.age
+        
+        if remaining_time <= 0:
+            return False  # Power-up should be removed
+        elif remaining_time <= self.fade_time:
+            self.is_fading = True
+            self.is_warning = True
+            # Fade out effect
+            fade_progress = remaining_time / self.fade_time
+            self.alpha = int(255 * fade_progress)
+        elif remaining_time <= self.warning_time:
+            self.is_warning = True
+            self.is_fading = False
+            self.alpha = 255
+        else:
+            self.is_warning = False
+            self.is_fading = False
+            self.alpha = 255
+        
+        # Update animations
         self.animation_timer += 1
-        self.pulse_scale = 1.0 + 0.3 * math.sin(self.animation_timer * 0.15)
+        
+        if self.is_warning:
+            # Warning animation - faster pulse and blink
+            self.pulse_scale = 1.0 + 0.5 * math.sin(self.animation_timer * 0.3)
+            self.glow_intensity = 0.8 + 0.2 * math.sin(self.animation_timer * 0.4)
+        else:
+            # Normal animation
+            self.pulse_scale = 1.0 + 0.3 * math.sin(self.animation_timer * 0.15)
+            self.glow_intensity = 0.5 + 0.5 * math.sin(self.animation_timer * 0.2)
+        
         self.rotation += 3
-        self.glow_intensity = 0.5 + 0.5 * math.sin(self.animation_timer * 0.2)
+        return True  # Power-up is still alive
     
     def draw(self, surface):
         """Draw the power-up with special effects"""
@@ -99,29 +128,56 @@ class PowerUp:
         animated_y = self.y - pulse_offset
         animated_size = self.block_size * self.pulse_scale
         
-        # Get color based on power-up type
+        # Get color based on power-up type and state
         color = self._get_color()
+        
+        # Modify color for warning/fading states
+        if self.is_fading:
+            # Fade to red when disappearing
+            fade_progress = 1.0 - (self.alpha / 255.0)
+            color = (
+                min(255, color[0] + int(100 * fade_progress)),
+                max(0, color[1] - int(100 * fade_progress)),
+                max(0, color[2] - int(100 * fade_progress))
+            )
+        elif self.is_warning:
+            # Blink red when warning
+            if int(self.animation_timer / 10) % 2:
+                color = (255, 100, 100)
+        
+        # Create surface with alpha for fading
+        powerup_surface = pygame.Surface((animated_size + 16, animated_size + 16), pygame.SRCALPHA)
         
         # Draw glow effect
         glow_size = animated_size + 8
-        glow_x = animated_x - 4
-        glow_y = animated_y - 4
-        glow_alpha = int(100 * self.glow_intensity)
+        glow_alpha = int(min(self.alpha, 100 * self.glow_intensity))
         
-        glow_surface = pygame.Surface((glow_size, glow_size))
+        glow_surface = pygame.Surface((glow_size, glow_size), pygame.SRCALPHA)
         glow_surface.set_alpha(glow_alpha)
         glow_surface.fill(color)
-        surface.blit(glow_surface, (glow_x, glow_y))
+        powerup_surface.blit(glow_surface, (4, 4))
         
         # Draw main power-up
-        rect = pygame.Rect(animated_x, animated_y, animated_size, animated_size)
-        pygame.draw.rect(surface, color, rect)
+        main_surface = pygame.Surface((animated_size, animated_size), pygame.SRCALPHA)
+        main_surface.set_alpha(self.alpha)
+        main_surface.fill(color)
+        powerup_surface.blit(main_surface, (8, 8))
         
         # Draw border
-        pygame.draw.rect(surface, (255, 255, 255), rect, 2)
+        border_surface = pygame.Surface((animated_size, animated_size), pygame.SRCALPHA)
+        border_surface.set_alpha(self.alpha)
+        pygame.draw.rect(border_surface, (255, 255, 255), (0, 0, animated_size, animated_size), 2)
+        powerup_surface.blit(border_surface, (8, 8))
         
         # Draw symbol
-        self._draw_symbol(surface, rect)
+        symbol_rect = pygame.Rect(8, 8, animated_size, animated_size)
+        symbol_surface = pygame.Surface((animated_size, animated_size), pygame.SRCALPHA)
+        symbol_surface.set_alpha(self.alpha)
+        self._draw_symbol(symbol_surface, pygame.Rect(0, 0, animated_size, animated_size))
+        powerup_surface.blit(symbol_surface, (8, 8))
+        
+        # Blit final surface
+        surface.blit(powerup_surface, (animated_x - 8, animated_y - 8))
     
     def _get_color(self):
         """Get color based on power-up type"""
@@ -174,27 +230,42 @@ class PowerUpManager:
         self.spawn_chance = config.get("powerups.spawn_chance")
         self.max_powerups = 1  # Maximum power-ups on screen
         self.spawn_timer = 0
-        self.spawn_interval = 45000  # 45 seconds between spawns
+        self.next_spawn_interval = self._get_random_spawn_interval()
+        self.cooldown_timer = 0
         self.game_area_x = game_area_x
         self.game_area_y = game_area_y
         self.game_area_width = game_area_width
         self.game_area_height = game_area_height
     
-    def update(self):
+    def _get_random_spawn_interval(self):
+        """Get random spawn interval between min and max"""
+        min_interval = config.get("powerups.spawn_interval_min")
+        max_interval = config.get("powerups.spawn_interval_max")
+        return random.randint(min_interval, max_interval)
+    
+    def update(self, delta_time=16):
         """Update all power-ups and spawn timer"""
-        # Update existing power-ups
-        for powerup in self.powerups:
-            powerup.update()
+        # Update existing power-ups and remove expired ones
+        self.powerups = [powerup for powerup in self.powerups if powerup.update(delta_time)]
+        
+        # Update cooldown timer
+        if self.cooldown_timer > 0:
+            self.cooldown_timer -= delta_time
         
         # Update spawn timer
-        self.spawn_timer += 16  # Assuming 60 FPS
+        self.spawn_timer += delta_time
+        
+        # Remove excessive debug logging for better performance
         
         # Spawn new power-up if conditions are met
         if (len(self.powerups) < self.max_powerups and 
-            self.spawn_timer >= self.spawn_interval and 
+            self.spawn_timer >= self.next_spawn_interval and 
+            self.cooldown_timer <= 0 and
             random.random() < self.spawn_chance):
+            # PowerUp spawned successfully
             self.spawn_powerup()
             self.spawn_timer = 0
+            self.next_spawn_interval = self._get_random_spawn_interval()
     
     def spawn_powerup(self, snake_body=None, obstacles=None, foods=None):
         """Spawn a random power-up"""
@@ -222,6 +293,8 @@ class PowerUpManager:
         """Check collision with snake head and return collided power-up"""
         for i, powerup in enumerate(self.powerups):
             if snake_head_rect.colliderect(powerup.get_rect()):
+                # Start cooldown after pickup
+                self.cooldown_timer = config.get("powerups.cooldown_after_pickup")
                 return self.powerups.pop(i)
         return None
     
@@ -229,6 +302,8 @@ class PowerUpManager:
         """Clear all power-ups"""
         self.powerups.clear()
         self.spawn_timer = 0
+        self.cooldown_timer = 0
+        self.next_spawn_interval = self._get_random_spawn_interval()
     
     def get_powerup_count(self):
         """Get current number of power-ups on screen"""
