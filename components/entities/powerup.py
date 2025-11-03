@@ -63,7 +63,8 @@ class PowerUp:
         if foods is None:
             foods = []
         
-        max_attempts = 50  # Reduced attempts for better performance
+        MAX_ATTEMPTS = 50  # Constant for better maintainability
+        max_attempts = MAX_ATTEMPTS
         for _ in range(max_attempts):
             self.x = round(random.randrange(self.game_area_x, self.game_area_x + self.game_area_width - self.block_size) / self.block_size) * self.block_size
             self.y = round(random.randrange(self.game_area_y, self.game_area_y + self.game_area_height - self.block_size) / self.block_size) * self.block_size
@@ -121,62 +122,54 @@ class PowerUp:
         return True  # Power-up is still alive
     
     def draw(self, surface):
-        """Draw the power-up with special effects"""
+        """Draw the power-up with optimized rendering"""
         # Calculate animated position and size
         pulse_offset = (self.block_size * (self.pulse_scale - 1.0)) / 2
-        animated_x = self.x - pulse_offset
-        animated_y = self.y - pulse_offset
-        animated_size = self.block_size * self.pulse_scale
+        animated_x = int(self.x - pulse_offset)
+        animated_y = int(self.y - pulse_offset)
+        animated_size = int(self.block_size * self.pulse_scale)
         
         # Get color based on power-up type and state
         color = self._get_color()
         
         # Modify color for warning/fading states
         if self.is_fading:
-            # Fade to red when disappearing
             fade_progress = 1.0 - (self.alpha / 255.0)
             color = (
                 min(255, color[0] + int(100 * fade_progress)),
                 max(0, color[1] - int(100 * fade_progress)),
                 max(0, color[2] - int(100 * fade_progress))
             )
-        elif self.is_warning:
-            # Blink red when warning
-            if int(self.animation_timer / 10) % 2:
-                color = (255, 100, 100)
+        elif self.is_warning and int(self.animation_timer / 10) % 2:
+            color = (255, 100, 100)
         
-        # Create surface with alpha for fading
-        powerup_surface = pygame.Surface((animated_size + 16, animated_size + 16), pygame.SRCALPHA)
+        # Optimized drawing - single surface approach
+        total_size = animated_size + 16
+        powerup_surface = pygame.Surface((total_size, total_size), pygame.SRCALPHA)
         
-        # Draw glow effect
-        glow_size = animated_size + 8
-        glow_alpha = int(min(self.alpha, 100 * self.glow_intensity))
+        # Draw glow effect - optimized
+        if self.glow_intensity > 0.1:  # Skip minimal glow for performance
+            glow_alpha = int(min(self.alpha, 100 * self.glow_intensity))
+            if glow_alpha > 10:  # Only draw visible glow
+                glow_rect = pygame.Rect(4, 4, animated_size + 8, animated_size + 8)
+                # Draw glow directly without extra surface
+                glow_color = (*color, glow_alpha)
+                pygame.draw.rect(powerup_surface, color, glow_rect)
+                powerup_surface.set_alpha(glow_alpha)
+                powerup_surface.set_alpha(255)  # Reset alpha
         
-        glow_surface = pygame.Surface((glow_size, glow_size), pygame.SRCALPHA)
-        glow_surface.set_alpha(glow_alpha)
-        glow_surface.fill(color)
-        powerup_surface.blit(glow_surface, (4, 4))
-        
-        # Draw main power-up
-        main_surface = pygame.Surface((animated_size, animated_size), pygame.SRCALPHA)
-        main_surface.set_alpha(self.alpha)
-        main_surface.fill(color)
-        powerup_surface.blit(main_surface, (8, 8))
-        
-        # Draw border
-        border_surface = pygame.Surface((animated_size, animated_size), pygame.SRCALPHA)
-        border_surface.set_alpha(self.alpha)
-        pygame.draw.rect(border_surface, (255, 255, 255), (0, 0, animated_size, animated_size), 2)
-        powerup_surface.blit(border_surface, (8, 8))
+        # Draw main power-up with border
+        main_rect = pygame.Rect(8, 8, animated_size, animated_size)
+        pygame.draw.rect(powerup_surface, color, main_rect)
+        pygame.draw.rect(powerup_surface, (255, 255, 255), main_rect, 2)
         
         # Draw symbol
-        symbol_rect = pygame.Rect(8, 8, animated_size, animated_size)
-        symbol_surface = pygame.Surface((animated_size, animated_size), pygame.SRCALPHA)
-        symbol_surface.set_alpha(self.alpha)
-        self._draw_symbol(symbol_surface, pygame.Rect(0, 0, animated_size, animated_size))
-        powerup_surface.blit(symbol_surface, (8, 8))
+        self._draw_symbol(powerup_surface, main_rect)
         
-        # Blit final surface
+        # Apply alpha and blit
+        if self.alpha < 255:
+            powerup_surface.set_alpha(self.alpha)
+        
         surface.blit(powerup_surface, (animated_x - 8, animated_y - 8))
     
     def _get_color(self):
@@ -272,17 +265,20 @@ class PowerUpManager:
         if len(self.powerups) >= self.max_powerups:
             return
         
-        # Random power-up type
-        power_types = ["slow_motion", "wall_pass"]
-        power_type = random.choice(power_types)
-        
-        powerup = PowerUp(power_type=power_type)
-        powerup.game_area_x = self.game_area_x
-        powerup.game_area_y = self.game_area_y
-        powerup.game_area_width = self.game_area_width
-        powerup.game_area_height = self.game_area_height
-        powerup.randomize_position(snake_body, obstacles, foods)
-        self.powerups.append(powerup)
+        try:
+            # Random power-up type
+            power_types = ["slow_motion", "wall_pass"]
+            power_type = random.choice(power_types)
+            
+            powerup = PowerUp(power_type=power_type)
+            powerup.game_area_x = self.game_area_x
+            powerup.game_area_y = self.game_area_y
+            powerup.game_area_width = self.game_area_width
+            powerup.game_area_height = self.game_area_height
+            powerup.randomize_position(snake_body, obstacles, foods)
+            self.powerups.append(powerup)
+        except Exception:
+            pass
     
     def draw(self, surface):
         """Draw all power-ups"""

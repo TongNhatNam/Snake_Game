@@ -105,83 +105,87 @@ class Snake:
     
     def _update_power_ups(self, delta_time=16):
         """Update power-up timers and effects"""
-        for power_up in self.power_ups:
+        for power_up in list(self.power_ups.keys()):
             if self.power_ups[power_up] and self.power_up_timers[power_up] > 0:
                 self.power_up_timers[power_up] -= delta_time
                 if self.power_up_timers[power_up] <= 0:
-                    print(f"Power-up expired: {power_up}")
                     self.power_ups[power_up] = False
     
     def draw(self, surface):
         """Draw the snake with enhanced visuals"""
-        for i, block in enumerate(self.body):
-            # Determine color based on position and effects
-            if i == len(self.body) - 1:  # Head
-                color = config.get_color('snake_head')
-                # Add glow effect for power-ups
-                if any(self.power_ups.values()):
-                    color = tuple(min(255, c + 50) for c in color)
-            else:
-                color = config.get_color('snake')
-            
-            # Draw main body
-            rect = pygame.Rect(block[0], block[1], self.block_size, self.block_size)
-            pygame.draw.rect(surface, color, rect)
-            
-            # Add border for better visibility
-            pygame.draw.rect(surface, (0, 0, 0), rect, 1)
-            
-            # Grow animation effect
-            if i == len(self.body) - 1 and self.grow_animation > 0:
-                alpha = int(255 * (self.grow_animation / 10))
-                glow_surface = pygame.Surface((self.block_size, self.block_size))
-                glow_surface.set_alpha(alpha)
-                glow_surface.fill(color)
-                surface.blit(glow_surface, (block[0], block[1]))
+        try:
+            for i, block in enumerate(self.body):
+                # Determine color based on position and effects
+                if i == len(self.body) - 1:  # Head
+                    color = config.get_color('snake_head')
+                    # Add glow effect for power-ups
+                    if any(self.power_ups.values()):
+                        color = tuple(min(255, c + 50) for c in color)
+                else:
+                    color = config.get_color('snake')
+                
+                # Draw main body
+                rect = pygame.Rect(block[0], block[1], self.block_size, self.block_size)
+                pygame.draw.rect(surface, color, rect)
+                
+                # Add border for better visibility
+                pygame.draw.rect(surface, (0, 0, 0), rect, 1)
+                
+                # Grow animation effect - optimized
+                if i == len(self.body) - 1 and self.grow_animation > 0:
+                    alpha = int(255 * (self.grow_animation / 10))
+                    glow_surface = pygame.Surface((self.block_size, self.block_size), pygame.SRCALPHA)
+                    glow_surface.set_alpha(alpha)
+                    glow_surface.fill(color)
+                    surface.blit(glow_surface, (block[0], block[1]))
+        except Exception:
+            pass
     
     def check_collision(self):
         """Check for collisions with walls and self"""
-        # Wall collision (with wall pass power-up check)
-        if not self.power_ups['wall_pass']:
-            if (self.x >= self.game_area_x + self.game_area_width or self.x < self.game_area_x or 
-                self.y >= self.game_area_y + self.game_area_height or self.y < self.game_area_y):
-                return True
-        
-        # Wall pass - wrap around game area
-        if self.power_ups['wall_pass']:
-            if self.x >= self.game_area_x + self.game_area_width:
-                self.x = self.game_area_x
-                # Update body position for smooth wrap
-                if len(self.body) > 0:
-                    self.body[-1][0] = self.x
-            elif self.x < self.game_area_x:
-                self.x = self.game_area_x + self.game_area_width - self.block_size
-                if len(self.body) > 0:
-                    self.body[-1][0] = self.x
-            if self.y >= self.game_area_y + self.game_area_height:
-                self.y = self.game_area_y
-                if len(self.body) > 0:
-                    self.body[-1][1] = self.y
-            elif self.y < self.game_area_y:
-                self.y = self.game_area_y + self.game_area_height - self.block_size
-                if len(self.body) > 0:
-                    self.body[-1][1] = self.y
-        
-        # Self collision
-        for block in self.body[:-1]:
-            if block == [self.x, self.y]:
-                return True
-        
-        return False
+        try:
+            # Wall collision (with wall pass power-up check)
+            if not self.power_ups['wall_pass']:
+                if (self.x >= self.game_area_x + self.game_area_width or self.x < self.game_area_x or 
+                    self.y >= self.game_area_y + self.game_area_height or self.y < self.game_area_y):
+                    return True
+            
+            # Wall pass - wrap around game area
+            if self.power_ups['wall_pass']:
+                if self.x >= self.game_area_x + self.game_area_width:
+                    self.x = self.game_area_x
+                    if self.body:
+                        self.body[-1][0] = self.x
+                elif self.x < self.game_area_x:
+                    self.x = self.game_area_x + self.game_area_width - self.block_size
+                    if self.body:
+                        self.body[-1][0] = self.x
+                if self.y >= self.game_area_y + self.game_area_height:
+                    self.y = self.game_area_y
+                    if self.body:
+                        self.body[-1][1] = self.y
+                elif self.y < self.game_area_y:
+                    self.y = self.game_area_y + self.game_area_height - self.block_size
+                    if self.body:
+                        self.body[-1][1] = self.y
+            
+            # Self collision - optimized check
+            if len(self.body) > 1:
+                head_pos = [self.x, self.y]
+                return head_pos in self.body[:-1]
+            
+            return False
+        except (IndexError, TypeError, KeyError):
+            return True  # Treat errors as collision
     
     def check_obstacle_collision(self, obstacles):
         """Check collision with obstacles"""
-        # Wall pass does NOT protect against obstacles
-        head_rect = pygame.Rect(self.x, self.y, self.block_size, self.block_size)
-        for obstacle in obstacles:
-            if head_rect.colliderect(obstacle.rect):
-                return True
-        return False
+        try:
+            # Wall pass does NOT protect against obstacles
+            head_rect = pygame.Rect(self.x, self.y, self.block_size, self.block_size)
+            return any(head_rect.colliderect(obstacle.rect) for obstacle in obstacles)
+        except (AttributeError, TypeError):
+            return False
     
     def change_direction(self, dx, dy):
         """Change snake direction with improved logic"""

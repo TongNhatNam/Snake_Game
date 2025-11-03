@@ -123,7 +123,7 @@ class ObstacleManager:
         max_attempts = 200
         attempts = 0
         
-        print(f"Generating {obstacle_count} obstacles for level {level}")
+        # Generate obstacles for level
         
         while len(self.obstacles) < obstacle_count and attempts < max_attempts:
             attempts += 1
@@ -141,9 +141,9 @@ class ObstacleManager:
             if self._is_valid_position(x, y, snake_body):
                 obstacle = Obstacle(x, y, obstacle_type)
                 self.obstacles.append(obstacle)
-                print(f"Created obstacle at ({x}, {y}) type: {obstacle_type}")
+                # Obstacle created successfully
         
-        print(f"Total obstacles created: {len(self.obstacles)}")
+        # Obstacle generation complete
     
     def _is_valid_position(self, x, y, snake_body=None):
         """Check if position is valid for obstacle placement"""

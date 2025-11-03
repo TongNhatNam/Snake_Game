@@ -55,6 +55,7 @@ python game.py
 - **WASD** hoặc **Arrow Keys**: Di chuyển snake
 - **SPACE**: Tạm dừng/tiếp tục game
 - **ESC**: Quay về menu chính
+- **Mouse**: Click để tương tác với menu, hover để highlight
 
 ### Mục tiêu
 - Ăn thức ăn để tăng điểm và độ dài
@@ -108,6 +109,23 @@ snakegame/
 └── high_scores.json    # Điểm cao (tự tạo)
 ```
 
+## 🌟 Điểm khác biệt
+
+- **Timer-based Food System**: Thức ăn đặc biệt và có hại xuất hiện theo thời gian với visual warnings
+- **Power-up Animations**: Hiệu ứng glow, pulse và fade với math-based animations
+- **Dual Input Support**: Hỗ trợ đồng thời keyboard và mouse cho UX tốt nhất
+- **Lives System**: 3 mạng sống thay vì game over ngay - tạo gameplay strategy
+- **Level-based Obstacles**: Chướng ngại vật tăng dần theo độ khó được chọn
+- **Clean Architecture**: Cấu trúc theo industry standards (Core/Entities/UI)
+
+## ⚡ Hiệu suất
+
+- **Font Caching**: Cache fonts trong countdown để tránh tạo lại mỗi frame
+- **Tối ưu Rendering**: Giảm tạo surface và các thao tác alpha blending
+- **Xử lý lỗi**: Xử lý lỗi mạnh mẽ cho độ ổn định cao
+- **Tiết kiệm bộ nhớ**: Quản lý đối tượng thông minh và phát hiện va chạm
+- **Animation mượt mà**: Gameplay 60 FPS với các lệnh vẽ được tối ưu
+
 ## 🎯 Tính năng kỹ thuật
 
 - **Clean Architecture**: Cấu trúc components rõ ràng (Core, Entities, UI)
@@ -121,41 +139,20 @@ snakegame/
 - **Animation system**: Hiệu ứng mượt mà với math-based animations
 - **Collision detection**: Phát hiện va chạm chính xác với pygame.Rect
 
-## 🏆 High Scores
+## 🏆 Bảng điểm cao
 
 Game tự động lưu 10 điểm cao nhất với thông tin:
 - Điểm số
 - Level đạt được
 - Thời gian chơi
 
-## 🐛 Troubleshooting
+## 🐛 Khắc phục sự cố
 
 Nếu gặp lỗi:
 1. Đảm bảo đã cài đặt pygame: `pip install pygame`
-2. Kiểm tra Python version: `python --version`
-3. Xóa file `config.json` để reset cài đặt
+2. Kiểm tra phiên bản Python: `python --version`
+3. Xóa file `config.json` để khôi phục cài đặt mặc định
 4. Chạy lại game
-
-## 📝 Changelog
-
-### Version 2.0 (Enhanced Edition)
-- ✅ **Clean Architecture**: Tái cấu trúc theo components (Core, Entities, UI)
-- ✅ **Modular Design**: Tách file lớn thành các module nhỏ dễ quản lý
-- ✅ **OOP Implementation**: Áp dụng đầy đủ lập trình hướng đối tượng
-- ✅ **State Management**: Hệ thống quản lý trạng thái tập trung
-- ✅ **Event System**: Xử lý sự kiện hiệu quả và có tổ chức
-- ✅ **Rendering System**: Tách biệt logic render khỏi game logic
-- ✅ **Configuration Management**: Hệ thống config linh hoạt với dot notation
-- ✅ **Multiple Food Types**: 3 loại thức ăn với hiệu ứng khác nhau
-- ✅ **Power-up System**: 2 loại power-up với animation đẹp mắt
-- ✅ **Obstacle System**: 4 loại chướng ngại vật đa dạng
-- ✅ **Level System**: 5 độ khó từ Easy đến Master
-- ✅ **Lives System**: 3 mạng sống thay vì game over ngay
-- ✅ **High Score System**: Lưu top 10 điểm cao nhất
-- ✅ **Menu System**: UI hoàn chỉnh với nhiều menu
-- ✅ **Settings System**: Tùy chỉnh FPS, màn hình, màu sắc
-- ✅ **Animation Effects**: Hiệu ứng visual mượt mà
-- ✅ **Professional Code**: Code clean, có comments và documentation đầy đủ
 
 ---
 

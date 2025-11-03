@@ -5,6 +5,7 @@ High score menu and management
 import json
 import os
 import pygame
+import math
 from .base_menu import Menu
 
 class HighScoreMenu(Menu):
@@ -19,7 +20,7 @@ class HighScoreMenu(Menu):
         """Load high scores from file"""
         if os.path.exists(self.high_scores_file):
             try:
-                with open(self.high_scores_file, 'r') as f:
+                with open(self.high_scores_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except (json.JSONDecodeError, IOError):
                 pass
@@ -28,8 +29,8 @@ class HighScoreMenu(Menu):
     def save_high_scores(self):
         """Save high scores to file"""
         try:
-            with open(self.high_scores_file, 'w') as f:
-                json.dump(self.high_scores, f)
+            with open(self.high_scores_file, 'w', encoding='utf-8') as f:
+                json.dump(self.high_scores, f, indent=2, ensure_ascii=False)
         except IOError:
             pass
 
@@ -45,15 +46,26 @@ class HighScoreMenu(Menu):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 return "back"
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  # Left click anywhere to go back
+                return "back"
         return None
 
     def draw(self):
         """Draw high scores menu"""
         self.screen.fill(self.background_color)
 
-        # Title
+        # Title with glow effect
+        title_y = 100 + int(3 * math.sin(self.animation_timer * 0.05))
+        
+        # Draw title glow
+        for offset in range(1, 3):
+            glow_color = tuple(int(c * 0.4) for c in self.highlight_color)
+            self.draw_text("HIGH SCORES", self.font_large, glow_color,
+                          self.screen_width // 2 + offset, title_y + offset)
+        
         self.draw_text("HIGH SCORES", self.font_large, self.highlight_color,
-                      self.screen_width // 2, 100)
+                      self.screen_width // 2, title_y, shadow=True)
 
         # High scores
         if not self.high_scores:
@@ -67,17 +79,31 @@ class HighScoreMenu(Menu):
                 score = score_data["score"]
                 level = score_data["level"]
 
-                # Rank
-                self.draw_text(f"{rank}.", self.font_medium, self.text_color, 200, y)
+                # Enhanced score display with background - error handling
+                try:
+                    score_bg = pygame.Rect(150, y - 15, 400, 30)
+                    bg_color = (40, 40, 60) if i % 2 == 0 else (50, 50, 70)
+                    pygame.draw.rect(self.screen, bg_color, score_bg)
+                    pygame.draw.rect(self.screen, (100, 100, 100), score_bg, 1)
+                except Exception:
+                    pass
+                
+                # Rank with special color for top 3 - safe array access
+                try:
+                    top_colors = [(255, 215, 0), (192, 192, 192), (205, 127, 50)]
+                    rank_color = top_colors[i] if i < len(top_colors) else self.text_color
+                except (IndexError, TypeError):
+                    rank_color = self.text_color
+                self.draw_text(f"{rank}.", self.font_medium, rank_color, 200, y, shadow=True)
 
                 # Score
-                self.draw_text(f"{score:06d}", self.font_medium, self.highlight_color, 300, y)
+                self.draw_text(f"{score:06d}", self.font_medium, self.highlight_color, 300, y, shadow=True)
 
                 # Level
-                self.draw_text(f"Level {level}", self.font_medium, self.text_color, 500, y)
+                self.draw_text(f"Level {level}", self.font_medium, self.text_color, 500, y, shadow=True)
 
         # Instructions
-        self.draw_text("Press ESC to go back",
+        self.draw_text("Press ESC or CLICK anywhere to go back",
                       self.font_small, self.text_color,
                       self.screen_width // 2, self.screen_height - 50)
 

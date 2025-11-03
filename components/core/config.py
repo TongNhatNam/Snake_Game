@@ -73,25 +73,41 @@ class Config:
     
     def load_config(self):
         """Load configuration from file or create default"""
-        if os.path.exists(self.config_file):
-            try:
-                with open(self.config_file, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                # Merge with default config to ensure all keys exist
-                return self._merge_configs(DEFAULT_CONFIG, config)
-            except (json.JSONDecodeError, IOError) as e:
-                print(f"Error loading config: {e}. Using default settings.")
+        # Validate config_file path to prevent path traversal
+        if not self._is_safe_path(self.config_file):
+            return DEFAULT_CONFIG.copy()
+            
+        if not os.path.exists(self.config_file):
+            return DEFAULT_CONFIG.copy()
+            
+        try:
+            with open(self.config_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            # Validate loaded config structure
+            if not isinstance(config, dict):
                 return DEFAULT_CONFIG.copy()
-        else:
+                
+            # Merge with default config to ensure all keys exist
+            try:
+                return self._merge_configs(DEFAULT_CONFIG, config)
+            except (TypeError, AttributeError, RecursionError):
+                return DEFAULT_CONFIG.copy()
+                
+        except (json.JSONDecodeError, IOError, OSError, UnicodeDecodeError):
             return DEFAULT_CONFIG.copy()
     
     def save_config(self):
         """Save current configuration to file"""
+        # Validate config_file path to prevent path traversal
+        if not self._is_safe_path(self.config_file):
+            return
+            
         try:
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, indent=4, ensure_ascii=False)
-        except IOError as e:
-            print(f"Error saving config: {e}")
+        except IOError:
+            pass
     
     def _merge_configs(self, default, user):
         """Merge user config with default config"""
@@ -116,18 +132,26 @@ class Config:
     
     def set(self, key_path, value):
         """Set configuration value using dot notation"""
-        keys = key_path.split('.')
-        config = self.config
-        for key in keys[:-1]:
-            if key not in config:
-                config[key] = {}
-            config = config[key]
-        config[keys[-1]] = value
+        try:
+            keys = key_path.split('.')
+            config = self.config
+            for key in keys[:-1]:
+                if key not in config:
+                    config[key] = {}
+                config = config[key]
+            config[keys[-1]] = value
+        except (AttributeError, TypeError, KeyError):
+            pass  # Silently fail if config structure is invalid
     
     def get_color(self, color_name):
         """Get color tuple from config"""
-        color = self.get(f"colors.{color_name}")
-        return tuple(color) if color else (255, 255, 255)
+        try:
+            color = self.get(f"colors.{color_name}")
+            if color and isinstance(color, (list, tuple)) and len(color) >= 3:
+                return tuple(color[:3])  # Ensure RGB format
+            return (255, 255, 255)  # Default white
+        except (TypeError, ValueError):
+            return (255, 255, 255)
     
     def get_screen_size(self):
         """Get screen dimensions"""
@@ -139,7 +163,17 @@ class Config:
     
     def get_block_size(self):
         """Get block size"""
-        return self.get("game.block_size")
+        return self.get("game.block_size", 20)
+    
+    def _is_safe_path(self, path):
+        """Check if path is safe (no path traversal)"""
+        try:
+            # Resolve path and check if it's within current directory
+            resolved_path = os.path.abspath(path)
+            current_dir = os.path.abspath('.')
+            return resolved_path.startswith(current_dir)
+        except Exception:
+            return False
 
 # Global config instance
 config = Config()

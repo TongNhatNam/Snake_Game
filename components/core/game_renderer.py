@@ -12,19 +12,32 @@ class GameRenderer:
         self.screen = screen
         self.screen_width, self.screen_height = config.get_screen_size()
         
-        # Fonts
-        self.font_large = pygame.font.Font(None, 60)
-        self.font_medium = pygame.font.Font(None, 40)
-        self.font_small = pygame.font.Font(None, 30)
+        # Fonts with error handling
+        try:
+            self.font_large = pygame.font.Font(None, 60)
+            self.font_medium = pygame.font.Font(None, 40)
+            self.font_small = pygame.font.Font(None, 30)
+        except pygame.error:
+            pass
+            default_font = pygame.font.get_default_font()
+            self.font_large = pygame.font.Font(default_font, 60)
+            self.font_medium = pygame.font.Font(default_font, 40)
+            self.font_small = pygame.font.Font(default_font, 30)
+        
+        # Cache for countdown fonts to avoid recreation
+        self._countdown_font_cache = {}
     
     def draw_text(self, text, font, color, x, y, center=True):
         """Draw text on screen"""
-        text_surface = font.render(text, True, color)
-        if center:
-            text_rect = text_surface.get_rect(center=(x, y))
-        else:
-            text_rect = text_surface.get_rect(topleft=(x, y))
-        self.screen.blit(text_surface, text_rect)
+        try:
+            text_surface = font.render(str(text), True, color)
+            if center:
+                text_rect = text_surface.get_rect(center=(x, y))
+            else:
+                text_rect = text_surface.get_rect(topleft=(x, y))
+            self.screen.blit(text_surface, text_rect)
+        except Exception:
+            pass
     
     def draw_countdown(self, countdown_timer, countdown_duration):
         """Draw countdown screen"""
@@ -39,14 +52,28 @@ class GameRenderer:
         else:
             count_text = "1"
         
-        # Animate countdown
-        scale = 1.0 + 0.5 * (1.0 - (remaining_time % 1000) / 1000.0)
-        font_size = int(100 * scale)
-        font = pygame.font.Font(None, font_size)
-        
-        text_surface = font.render(count_text, True, config.get_color('text_highlight'))
-        text_rect = text_surface.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
-        self.screen.blit(text_surface, text_rect)
+        # Animate countdown with font caching
+        try:
+            scale = 1.0 + 0.5 * (1.0 - (remaining_time % 1000) / 1000.0)
+            font_size = int(100 * scale)
+            
+            # Use cached font or create new one
+            if font_size not in self._countdown_font_cache:
+                self._countdown_font_cache[font_size] = pygame.font.Font(None, font_size)
+                # Limit cache size to prevent memory leak
+                if len(self._countdown_font_cache) > 10:
+                    # Remove oldest entry
+                    oldest_key = next(iter(self._countdown_font_cache))
+                    del self._countdown_font_cache[oldest_key]
+            
+            font = self._countdown_font_cache[font_size]
+            text_surface = font.render(count_text, True, config.get_color('text_highlight'))
+            text_rect = text_surface.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
+            self.screen.blit(text_surface, text_rect)
+        except Exception:
+            pass
+            self.draw_text(count_text, self.font_large, config.get_color('text_highlight'),
+                          self.screen_width // 2, self.screen_height // 2)
         
         # Instructions
         self.draw_text("Get Ready!", self.font_medium, config.get_color('text'),
@@ -87,8 +114,13 @@ class GameRenderer:
         self.draw_text(f"Lives: {lives_text}", self.font_medium, config.get_color('text'),
                       sidebar_x, 160, False)
         
-        # Speed
-        speed_text = f"Speed: {int(1000/snake_move_interval):.1f}/sec"
+        # Speed with error handling
+        try:
+            speed_value = int(1000/snake_move_interval) if snake_move_interval > 0 else 0
+            speed_text = f"Speed: {speed_value:.1f}/sec"
+        except (ZeroDivisionError, TypeError):
+            speed_text = "Speed: 0.0/sec"
+        
         self.draw_text(speed_text, self.font_small, config.get_color('text'),
                       sidebar_x, 200, False)
         
@@ -117,22 +149,24 @@ class GameRenderer:
         # Clear screen
         self.screen.fill(config.get_color('background'))
         
-        # Draw game area border
-        game_area = {
-            'x': game_state.game_area_x,
-            'y': game_state.game_area_y,
-            'width': game_state.game_area_width,
-            'height': game_state.game_area_height
-        }
-        
-        game_rect = pygame.Rect(game_area['x']-2, game_area['y']-2, 
-                               game_area['width']+4, game_area['height']+4)
-        pygame.draw.rect(self.screen, (255, 255, 255), game_rect, 2)
-        
-        # Fill game area background
-        game_bg = pygame.Rect(game_area['x'], game_area['y'], 
-                             game_area['width'], game_area['height'])
-        pygame.draw.rect(self.screen, (20, 20, 20), game_bg)
+        # Draw game area border - optimized
+        try:
+            game_area = {
+                'x': game_state.game_area_x,
+                'y': game_state.game_area_y,
+                'width': game_state.game_area_width,
+                'height': game_state.game_area_height
+            }
+            
+            # Fill game area background first
+            game_bg = pygame.Rect(game_area['x'], game_area['y'], 
+                                 game_area['width'], game_area['height'])
+            pygame.draw.rect(self.screen, (20, 20, 20), game_bg)
+            
+            # Draw border
+            pygame.draw.rect(self.screen, (255, 255, 255), game_bg, 2)
+        except Exception:
+            pass
         
         # Draw game objects
         if 'obstacle_manager' in game_objects:
@@ -144,15 +178,18 @@ class GameRenderer:
         if 'snake' in game_objects:
             game_objects['snake'].draw(self.screen)
         
-        # Draw HUD
-        if 'snake' in game_objects:
-            snake = game_objects['snake']
-            self.draw_hud(
-                game_state.score, 
-                game_state.level, 
-                snake.get_lives(),
-                game_state.snake_move_interval,
-                snake.get_power_ups(),
-                snake.get_power_up_timers(),
-                game_area
-            )
+        # Draw HUD with error handling
+        try:
+            if 'snake' in game_objects:
+                snake = game_objects['snake']
+                self.draw_hud(
+                    game_state.score, 
+                    game_state.level, 
+                    snake.get_lives(),
+                    game_state.snake_move_interval,
+                    snake.get_power_ups(),
+                    snake.get_power_up_timers(),
+                    game_area
+                )
+        except Exception:
+            pass

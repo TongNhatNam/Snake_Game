@@ -55,7 +55,8 @@ class Food:
         if obstacles is None:
             obstacles = []
         
-        max_attempts = 50  # Reduced attempts for better performance
+        MAX_ATTEMPTS = 50  # Constant for better maintainability
+        max_attempts = MAX_ATTEMPTS
         for _ in range(max_attempts):
             self.x = round(random.randrange(self.game_area_x, self.game_area_x + self.game_area_width - self.block_size) / self.block_size) * self.block_size
             self.y = round(random.randrange(self.game_area_y, self.game_area_y + self.game_area_height - self.block_size) / self.block_size) * self.block_size
@@ -73,68 +74,72 @@ class Food:
     
     def update(self, delta_time=16):
         """Update food animation and lifetime"""
-        # Update age for special/bad food
-        if self.lifetime is not None:
-            self.age += delta_time
-            remaining_time = self.lifetime - self.age
+        try:
+            # Update age for special/bad food
+            if self.lifetime is not None:
+                self.age += delta_time
+                remaining_time = self.lifetime - self.age
+                
+                if remaining_time <= 0:
+                    return False  # Food should be removed
+                elif remaining_time <= self.warning_time:
+                    self.is_warning = True
+                    # Fade effect in warning phase
+                    fade_progress = max(0, remaining_time / self.warning_time)
+                    self.alpha = int(128 + 127 * fade_progress)  # 128-255 alpha
+                else:
+                    self.is_warning = False
+                    self.alpha = 255
             
-            if remaining_time <= 0:
-                return False  # Food should be removed
-            elif remaining_time <= self.warning_time:
-                self.is_warning = True
-                # Fade effect in warning phase
-                fade_progress = remaining_time / self.warning_time
-                self.alpha = int(128 + 127 * fade_progress)  # 128-255 alpha
+            # Update animations - optimized
+            self.animation_timer += 1
+            
+            if self.is_warning:
+                # Warning animation - faster pulse
+                self.pulse_scale = 1.0 + 0.4 * math.sin(self.animation_timer * 0.2)
             else:
-                self.is_warning = False
-                self.alpha = 255
-        
-        # Update animations
-        self.animation_timer += 1
-        
-        if self.is_warning:
-            # Warning animation - faster pulse
-            self.pulse_scale = 1.0 + 0.4 * math.sin(self.animation_timer * 0.2)
-        else:
-            # Normal animation
-            self.pulse_scale = 1.0 + 0.2 * math.sin(self.animation_timer * 0.1)
-        
-        self.rotation += 2
-        return True  # Food is still alive
+                # Normal animation
+                self.pulse_scale = 1.0 + 0.2 * math.sin(self.animation_timer * 0.1)
+            
+            self.rotation += 2
+            return True  # Food is still alive
+        except Exception:
+            return False
     
     def draw(self, surface):
-        """Draw the food with animation effects"""
+        """Draw the food with optimized rendering"""
         # Calculate animated position and size
         pulse_offset = (self.block_size * (self.pulse_scale - 1.0)) / 2
-        animated_x = self.x - pulse_offset
-        animated_y = self.y - pulse_offset
-        animated_size = self.block_size * self.pulse_scale
+        animated_x = int(self.x - pulse_offset)
+        animated_y = int(self.y - pulse_offset)
+        animated_size = int(self.block_size * self.pulse_scale)
         
         # Get color based on food type
         color = self._get_color()
         
         # Modify color for warning state
-        if self.is_warning:
-            # Blink red when warning
-            if int(self.animation_timer / 8) % 2:
-                if self.food_type == "special":
-                    color = (255, 200, 100)  # Orange warning
-                elif self.food_type == "bad":
-                    color = (255, 100, 100)  # Red warning
+        if self.is_warning and int(self.animation_timer / 8) % 2:
+            if self.food_type == "special":
+                color = (255, 200, 100)  # Orange warning
+            elif self.food_type == "bad":
+                color = (255, 100, 100)  # Red warning
         
-        # Create surface with alpha for fading
+        # Optimized drawing
+        rect = pygame.Rect(animated_x, animated_y, animated_size, animated_size)
+        
+        # Optimized alpha rendering
         if self.alpha < 255:
-            food_surface = pygame.Surface((animated_size, animated_size), pygame.SRCALPHA)
-            food_surface.set_alpha(self.alpha)
-            food_surface.fill(color)
-            surface.blit(food_surface, (animated_x, animated_y))
+            # Use color with alpha instead of creating surface
+            alpha_color = (*color, self.alpha)
+            # Create temporary surface only when necessary
+            temp_surface = pygame.Surface((animated_size, animated_size), pygame.SRCALPHA)
+            temp_surface.fill(alpha_color)
+            surface.blit(temp_surface, rect.topleft)
         else:
-            # Draw main food normally
-            rect = pygame.Rect(animated_x, animated_y, animated_size, animated_size)
+            # Direct drawing for full opacity
             pygame.draw.rect(surface, color, rect)
         
         # Add special effects based on type
-        rect = pygame.Rect(animated_x, animated_y, animated_size, animated_size)
         self._draw_special_effects(surface, rect)
     
     def _get_color(self):
@@ -223,25 +228,26 @@ class FoodManager:
     
     def spawn_food(self, snake_body=None, obstacles=None, food_type="normal"):
         """Spawn a specific type of food"""
-        food = Food(food_type=food_type)
-        food.game_area_x = self.game_area_x
-        food.game_area_y = self.game_area_y
-        food.game_area_width = self.game_area_width
-        food.game_area_height = self.game_area_height
-        food.randomize_position(snake_body, obstacles)
-        
-        # Add to appropriate list
-        if food_type == "normal":
-            self.normal_foods.append(food)
-        elif food_type == "special":
-            self.special_foods.append(food)
-            # Special food spawned successfully
-        elif food_type == "bad":
-            self.bad_foods.append(food)
-            # Bad food spawned successfully
-        
-        # Update main foods list
-        self.foods = self.normal_foods + self.special_foods + self.bad_foods
+        try:
+            food = Food(food_type=food_type)
+            food.game_area_x = self.game_area_x
+            food.game_area_y = self.game_area_y
+            food.game_area_width = self.game_area_width
+            food.game_area_height = self.game_area_height
+            food.randomize_position(snake_body, obstacles)
+            
+            # Add to appropriate list
+            if food_type == "normal":
+                self.normal_foods.append(food)
+            elif food_type == "special":
+                self.special_foods.append(food)
+            elif food_type == "bad":
+                self.bad_foods.append(food)
+            
+            # Update main foods list
+            self._update_foods_list()
+        except Exception:
+            pass
     
     def ensure_normal_food(self, snake_body=None, obstacles=None):
         """Ensure there's always 1 normal food on screen"""
@@ -283,28 +289,24 @@ class FoodManager:
     
     def check_collision(self, snake_head_rect):
         """Check collision with snake head and return collided food"""
-        # Check normal foods
-        for i, food in enumerate(self.normal_foods):
-            if snake_head_rect.colliderect(food.get_rect()):
-                removed_food = self.normal_foods.pop(i)
-                self._update_foods_list()
-                return removed_food
-        
-        # Check special foods
-        for i, food in enumerate(self.special_foods):
-            if snake_head_rect.colliderect(food.get_rect()):
-                removed_food = self.special_foods.pop(i)
-                self._update_foods_list()
-                return removed_food
-        
-        # Check bad foods
-        for i, food in enumerate(self.bad_foods):
-            if snake_head_rect.colliderect(food.get_rect()):
-                removed_food = self.bad_foods.pop(i)
-                self._update_foods_list()
-                return removed_food
-        
-        return None
+        try:
+            # Check all food types in order of priority
+            food_lists = [
+                (self.normal_foods, 'normal'),
+                (self.special_foods, 'special'), 
+                (self.bad_foods, 'bad')
+            ]
+            
+            for food_list, food_type in food_lists:
+                for i, food in enumerate(food_list):
+                    if snake_head_rect.colliderect(food.get_rect()):
+                        removed_food = food_list.pop(i)
+                        self._update_foods_list()
+                        return removed_food
+            
+            return None
+        except Exception:
+            return None
     
     def _update_foods_list(self):
         """Update main foods list after changes"""
@@ -312,14 +314,19 @@ class FoodManager:
     
     def clear(self):
         """Clear all foods"""
-        self.foods.clear()
-        self.normal_foods.clear()
-        self.special_foods.clear()
-        self.bad_foods.clear()
-        self.special_spawn_timer = 0
-        self.bad_spawn_timer = 0
-        self.special_spawn_interval = self._get_random_interval("special")
-        self.bad_spawn_interval = self._get_random_interval("bad")
+        try:
+            self.foods.clear()
+            self.normal_foods.clear()
+            self.special_foods.clear()
+            self.bad_foods.clear()
+            self.special_spawn_timer = 0
+            self.bad_spawn_timer = 0
+            self.special_spawn_interval = self._get_random_interval("special")
+            self.bad_spawn_interval = self._get_random_interval("bad")
+        except Exception:
+            # Fallback to default intervals if config access fails
+            self.special_spawn_interval = 20000  # 20 seconds default
+            self.bad_spawn_interval = 30000     # 30 seconds default
     
     def get_food_count(self):
         """Get current number of foods on screen"""

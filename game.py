@@ -14,40 +14,46 @@ class SnakeGame:
     
     def __init__(self):
         """Initialize the game"""
-        pygame.init()
-        
-        # Screen setup
-        self.screen_width, self.screen_height = config.get_screen_size()
-        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-        pygame.display.set_caption("Enhanced Snake Game")
-        self.clock = pygame.time.Clock()
-        
-        # Core components
-        self.game_state = GameState()
-        self.renderer = GameRenderer(self.screen)
-        
-        # Game objects
-        self.game_objects = {}
-        
-        # Initialize menus
-        self._init_menus()
-        
-        # Event handler
-        self.event_handler = EventHandler(
-            self.game_state, 
-            self.menus, 
-            config.get_block_size()
-        )
+        try:
+            pygame.init()
+            
+            # Screen setup
+            self.screen_width, self.screen_height = config.get_screen_size()
+            self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+            pygame.display.set_caption("Enhanced Snake Game")
+            self.clock = pygame.time.Clock()
+            
+            # Core components
+            self.game_state = GameState()
+            self.renderer = GameRenderer(self.screen)
+            
+            # Game objects
+            self.game_objects = {}
+            
+            # Initialize menus
+            self._init_menus()
+            
+            # Event handler
+            self.event_handler = EventHandler(
+                self.game_state, 
+                self.menus, 
+                config.get_block_size()
+            )
+        except Exception:
+            sys.exit(1)
     
     def _init_menus(self):
         """Initialize all menu objects"""
-        self.menus = {
-            "main": MainMenu(self.screen),
-            "level_select": LevelSelectMenu(self.screen),
-            "settings": SettingsMenu(self.screen),
-            "high_scores": HighScoreMenu(self.screen),
-            "game_over": None
-        }
+        try:
+            self.menus = {
+                "main": MainMenu(self.screen),
+                "level_select": LevelSelectMenu(self.screen),
+                "settings": SettingsMenu(self.screen),
+                "high_scores": HighScoreMenu(self.screen),
+                "game_over": None
+            }
+        except Exception:
+            raise
     
     def start_new_game(self, level=1):
         """Start a new game with selected level"""
@@ -233,30 +239,33 @@ class SnakeGame:
         """Main game loop"""
         running = True
         
-        while running:
-            # Handle events
-            running = self._handle_events()
-            
-            # Update countdown
-            if self.game_state.state == "countdown":
-                self.game_state.countdown_timer += self.clock.get_time()
-                if self.game_state.countdown_timer >= self.game_state.countdown_duration:
-                    self.game_state.set_state("playing")
-            
-            # Update game
-            self._update_game()
-            
-            # Draw
-            self._draw()
-            pygame.display.flip()
-            
-            # Control FPS
-            fps = 60 if self.game_state.is_playing() else config.get_fps()
-            self.clock.tick(fps)
-        
-        # Cleanup
-        pygame.quit()
-        sys.exit()
+        try:
+            while running:
+                # Handle events
+                running = self._handle_events()
+                
+                # Update countdown
+                if self.game_state.state == "countdown":
+                    self.game_state.countdown_timer += self.clock.get_time()
+                    if self.game_state.countdown_timer >= self.game_state.countdown_duration:
+                        self.game_state.set_state("playing")
+                
+                # Update game
+                self._update_game()
+                
+                # Draw
+                self._draw()
+                pygame.display.flip()
+                
+                # Control FPS
+                fps = 60 if self.game_state.is_playing() else config.get_fps()
+                self.clock.tick(fps)
+        except Exception:
+            pass
+        finally:
+            # Cleanup
+            pygame.quit()
+            sys.exit()
 
 def main():
     """Main function"""
