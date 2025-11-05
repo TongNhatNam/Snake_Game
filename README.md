@@ -14,8 +14,8 @@ Một phiên bản nâng cao của game Snake cổ điển với nhiều tính n
 - **Thức ăn có hại** (tím): -20 điểm và làm ngắn rắn, cẩn thận!
 
 ### ⚡ Power-ups thú vị
-- **Làm chậm** (cam): Di chuyển chậm lại trong 2 giây
-- **Xuyên tường** (xám): Có thể đi qua tường trong 2 giây
+- **Làm chậm** (cam): Di chuyển chậm lại trong 5 giây
+- **Xuyên tường** (xám): Có thể đi qua tường trong 5 giây
 
 ### 🧱 Chướng ngại vật
 - **Tường cố định**: Các khối tường cần tránh
