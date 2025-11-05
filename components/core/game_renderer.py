@@ -161,10 +161,10 @@ class GameRenderer:
             # Fill game area background first
             game_bg = pygame.Rect(game_area['x'], game_area['y'], 
                                  game_area['width'], game_area['height'])
-            pygame.draw.rect(self.screen, (20, 20, 20), game_bg)
+            pygame.draw.rect(self.screen, (255, 255, 255), game_bg)
             
             # Draw border
-            pygame.draw.rect(self.screen, (255, 255, 255), game_bg, 2)
+            pygame.draw.rect(self.screen, (30, 30, 30), game_bg, 2)
         except Exception:
             pass
         

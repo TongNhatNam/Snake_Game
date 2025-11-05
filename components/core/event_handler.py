@@ -15,26 +15,37 @@ class EventHandler:
     def handle_events(self, snake=None):
         """Handle all game events"""
         for event in pygame.event.get():
+            # Always check for QUIT first
             if event.type == pygame.QUIT:
                 return False
             
             # Delegate to specific handlers
+            result = None
             if self.game_state.state == "menu":
-                return self._handle_menu_events(event)
+                result = self._handle_menu_events(event)
             elif self.game_state.state == "level_select":
-                return self._handle_level_select_events(event)
+                result = self._handle_level_select_events(event)
             elif self.game_state.state == "settings":
-                return self._handle_settings_events(event)
+                result = self._handle_settings_events(event)
             elif self.game_state.state == "high_scores":
-                return self._handle_high_scores_events(event)
+                result = self._handle_high_scores_events(event)
             elif self.game_state.state == "countdown":
-                return self._handle_countdown_events(event)
+                result = self._handle_countdown_events(event)
             elif self.game_state.state == "playing":
-                return self._handle_playing_events(event, snake)
+                result = self._handle_playing_events(event, snake)
             elif self.game_state.state == "paused":
-                return self._handle_paused_events(event)
+                result = self._handle_paused_events(event)
             elif self.game_state.state == "game_over":
-                return self._handle_game_over_events(event)
+                result = self._handle_game_over_events(event)
+            
+            # If result is False (quit command), stop processing and return False
+            if result is False:
+                return False
+            # If result is a tuple (start_level) or special string (restart, etc), return it
+            if isinstance(result, tuple):
+                return result
+            if result in ["restart", "settings_changed"]:
+                return result
         
         return True
     

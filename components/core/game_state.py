@@ -10,6 +10,7 @@ class GameState:
         self.level = 1
         self.score = 0
         self.high_score = 0
+        self.game_mode = "single"  # single or multiplayer
         
         # Timers
         self.snake_move_timer = 0
@@ -22,6 +23,12 @@ class GameState:
         self.game_area_height = 400
         self.game_area_x = 50
         self.game_area_y = 50
+        
+        # Multiplayer state
+        self.player1_score = 0
+        self.player2_score = 0
+        self.player1_lives = 3
+        self.player2_lives = 3
     
     def set_state(self, new_state):
         """Change game state"""
@@ -39,5 +46,13 @@ class GameState:
         """Reset state for new game"""
         self.level = level
         self.score = 0
+        self.player1_score = 0
+        self.player2_score = 0
+        self.player1_lives = 3
+        self.player2_lives = 3
         self.snake_move_timer = 0
         self.countdown_timer = 0
+    
+    def set_game_mode(self, mode):
+        """Set game mode (single or multiplayer)"""
+        self.game_mode = mode

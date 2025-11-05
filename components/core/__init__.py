@@ -4,3 +4,4 @@ from .game_engine import GameEngine
 from .game_state import GameState
 from .event_handler import EventHandler
 from .game_renderer import GameRenderer
+from .audio_manager import audio_manager, AudioManager
