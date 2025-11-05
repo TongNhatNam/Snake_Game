@@ -52,9 +52,8 @@ class EventHandler:
     def _handle_menu_events(self, event):
         """Handle main menu events"""
         result = self.menus["main"].handle_event(event)
-        if result == "Start Game":
-            return "start_game"
-        elif result == "Select Level":
+        if result == "Start Game" or result == "Select Level":
+            # Open level selection when choosing Start Game or explicit Select Level
             self.game_state.set_state("level_select")
         elif result == "Settings":
             self.game_state.set_state("settings")

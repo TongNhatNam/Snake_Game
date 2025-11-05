@@ -45,15 +45,15 @@ DEFAULT_CONFIG = {
         "bad_warning_time": 3000              # 3 seconds warning
     },
     "powerups": {
-        "slow_duration": 2000,   # 2 seconds
-        "wall_duration": 2000,   # 2 seconds
-        "spawn_interval_min": 60000,  # 60 seconds min
-        "spawn_interval_max": 90000,  # 90 seconds max
-        "spawn_chance": 0.005,        # 0.5% chance
+        "slow_duration": 5000,   # 5 seconds
+        "wall_duration": 5000,   # 5 seconds
+        "spawn_interval_min": 20000,  # 20 seconds min
+        "spawn_interval_max": 35000,  # 35 seconds max
+        "spawn_chance": 0.02,         # 2% chance
         "lifetime": 18000,            # 18 seconds lifetime
         "warning_time": 5000,         # 5 seconds warning
         "fade_time": 2000,            # 2 seconds fade
-        "cooldown_after_pickup": 30000  # 30 seconds cooldown
+        "cooldown_after_pickup": 15000  # 15 seconds cooldown
     },
     "levels": {
         "max_level": 5,  # Maximum level available
