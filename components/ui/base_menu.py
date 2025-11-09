@@ -7,36 +7,64 @@ import math
 from ..core import config
 
 class Menu:
-    """Base menu class"""
+    """Base menu class with performance optimizations"""
+    
+    # Class-level font cache
+    _font_cache = {}
     
     def __init__(self, screen):
         self.screen = screen
-        self.screen_width, self.screen_height = config.get_screen_size()
-        self.font_large = pygame.font.Font(None, 60)
-        self.font_medium = pygame.font.Font(None, 40)
-        self.font_small = pygame.font.Font(None, 30)
+        self.screen_width, self.screen_height = 1000, 700  # Fixed optimal size
         
-        # Colors
+        # Cached fonts for performance
+        self.font_large = self._get_cached_font(60)
+        self.font_medium = self._get_cached_font(40)
+        self.font_small = self._get_cached_font(30)
+        
+        # Cached colors
         self.text_color = config.get_color('text')
         self.highlight_color = config.get_color('text_highlight')
         self.background_color = config.get_color('background')
         
         # Animation
         self.animation_timer = 0
+        
+        # Text surface cache for frequently used text
+        self._text_cache = {}
+    
+    @classmethod
+    def _get_cached_font(cls, size):
+        """Get cached font for performance"""
+        if size not in cls._font_cache:
+            try:
+                cls._font_cache[size] = pygame.font.Font(None, size)
+            except pygame.error:
+                cls._font_cache[size] = pygame.font.Font(pygame.font.get_default_font(), size)
+        return cls._font_cache[size]
     
     def draw_text(self, text, font, color, x, y, center=True, shadow=False):
-        """Draw text with optional shadow effect"""
-        if shadow:
-            # Draw shadow
-            shadow_surface = font.render(text, True, (0, 0, 0))
+        """Draw text with caching and optional shadow"""
+        # Create cache key
+        cache_key = (str(text), id(font), color, shadow)
+        
+        if cache_key not in self._text_cache:
+            if shadow:
+                shadow_surface = font.render(str(text), True, (0, 0, 0))
+                text_surface = font.render(str(text), True, color)
+                self._text_cache[cache_key] = (shadow_surface, text_surface)
+            else:
+                text_surface = font.render(str(text), True, color)
+                self._text_cache[cache_key] = (None, text_surface)
+        
+        shadow_surface, text_surface = self._text_cache[cache_key]
+        
+        if shadow and shadow_surface:
             if center:
                 shadow_rect = shadow_surface.get_rect(center=(x + 2, y + 2))
             else:
                 shadow_rect = shadow_surface.get_rect(topleft=(x + 2, y + 2))
             self.screen.blit(shadow_surface, shadow_rect)
         
-        # Draw main text
-        text_surface = font.render(text, True, color)
         if center:
             text_rect = text_surface.get_rect(center=(x, y))
         else:
@@ -45,28 +73,19 @@ class Menu:
         return text_rect
     
     def draw_button(self, text, x, y, width, height, color, hover_color, is_hovered=False):
-        """Draw an enhanced button with gradient effect"""
-        button_color = hover_color if is_hovered else color
+        """Draw optimized button"""
         button_rect = pygame.Rect(x, y, width, height)
+        button_color = hover_color if is_hovered else color
         
-        # Draw button with gradient effect
-        if is_hovered:
-            # Brighter gradient for hover
-            for i in range(height):
-                shade = int(button_color[0] * (1 - i / height * 0.3))
-                line_color = (shade, shade, shade)
-                pygame.draw.line(self.screen, line_color, (x, y + i), (x + width, y + i))
-        else:
-            pygame.draw.rect(self.screen, button_color, button_rect)
+        # Simple rect for performance
+        pygame.draw.rect(self.screen, button_color, button_rect)
         
-        # Border with glow effect for selected
-        border_color = (255, 255, 100) if is_hovered else (255, 255, 255)
-        border_width = 3 if is_hovered else 2
-        pygame.draw.rect(self.screen, border_color, button_rect, border_width)
+        # Border
+        border_color = (255, 255, 100) if is_hovered else (200, 200, 200)
+        pygame.draw.rect(self.screen, border_color, button_rect, 2)
         
-        # Draw text with shadow
-        text_color = (255, 255, 255)
-        self.draw_text(text, self.font_medium, text_color, x + width//2, y + height//2, shadow=True)
+        # Text
+        self.draw_text(text, self.font_medium, (255, 255, 255), x + width//2, y + height//2)
         return button_rect
     
     def update_animation(self):

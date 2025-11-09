@@ -9,9 +9,9 @@ import os
 # Default game settings
 DEFAULT_CONFIG = {
     "screen": {
-        "width": 600,
-        "height": 400,
-        "fps": 10
+        "width": 1000,
+        "height": 700,
+        "fps": 15
     },
     "game": {
         "block_size": 20,
@@ -154,8 +154,8 @@ class Config:
             return (255, 255, 255)
     
     def get_screen_size(self):
-        """Get screen dimensions"""
-        return (self.get("screen.width"), self.get("screen.height"))
+        """Get fixed optimal screen dimensions"""
+        return (1000, 700)
     
     def get_fps(self):
         """Get FPS setting"""

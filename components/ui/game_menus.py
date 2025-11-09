@@ -13,7 +13,7 @@ class MainMenu(Menu):
     def __init__(self, screen):
         super().__init__(screen)
         self.selected_option = 0
-        self.options = ["Start Game", "Settings", "High Scores", "Quit"]
+        self.options = ["Start Game", "Settings", "High Scores", "Achievements", "Quit"]
         self.buttons = []
 
     def handle_event(self, event):
@@ -223,10 +223,7 @@ class GameOverMenu(Menu):
         from .score_menu import HighScoreMenu
         self.high_score_menu = HighScoreMenu(screen)
         self.show_high_score = False
-        self.selected_index = 0  # for keyboard navigation on buttons
         
-        # Keep user's chosen snake color; no randomization here
-
         # Add score to high scores
         self.high_score_menu.add_score(final_score, level)
 
@@ -237,9 +234,7 @@ class GameOverMenu(Menu):
         
         if event.type == pygame.KEYDOWN:
             return self._handle_keyboard_event(event)
-        elif event.type == pygame.MOUSEMOTION:
-            # Update selection when hovering a button with mouse
-            self._update_selection_from_mouse()
+
         elif event.type == pygame.MOUSEBUTTONDOWN:
             return self._handle_mouse_event(event)
         
@@ -257,47 +252,37 @@ class GameOverMenu(Menu):
         key_actions = {
             pygame.K_r: "restart",
             pygame.K_m: "menu",
-            pygame.K_q: "quit"
+            pygame.K_q: "quit",
+            pygame.K_h: None
         }
         
         if event.key in key_actions:
+            if event.key == pygame.K_h:
+                self.show_high_score = True
+                return None
             return key_actions[event.key]
-        elif event.key == pygame.K_h:
-            self.show_high_score = True
-        elif event.key == pygame.K_UP:
-            self.selected_index = (self.selected_index - 1) % 4
-        elif event.key == pygame.K_DOWN:
-            self.selected_index = (self.selected_index + 1) % 4
-        elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-            # Activate selected button
-            return ["restart", "menu", "high_scores", "quit"][self.selected_index]
         
         return None
     
     def _handle_mouse_event(self, event):
-        """Handle mouse click events (buttons and controls)"""
-        if event.button != 1:  # Only handle left click
+        """Handle mouse click events"""
+        if event.button != 1:
             return None
-
+        
         mouse_pos = pygame.mouse.get_pos()
-
-        # No FPS or screen size buttons on Game Over screen anymore
-
-        # Check action buttons (recompute layout deterministically)
-        x, start_y, button_width, button_height, spacing = self._button_layout()
-        actions = [
-            (pygame.Rect(x, start_y + 0 * (button_height + spacing), button_width, button_height), "restart"),
-            (pygame.Rect(x, start_y + 1 * (button_height + spacing), button_width, button_height), "menu"),
-            (pygame.Rect(x, start_y + 2 * (button_height + spacing), button_width, button_height), "high_scores"),
-            (pygame.Rect(x, start_y + 3 * (button_height + spacing), button_width, button_height), "quit"),
-        ]
-        for rect, action in actions:
-            if rect.collidepoint(mouse_pos):
-                if action == "high_scores":
+        
+        # Simple click areas for actions
+        actions = ["restart", "menu", None, "quit"]
+        start_y = 400
+        for i in range(4):
+            y = start_y + i * 40
+            text_rect = pygame.Rect(self.screen_width // 2 - 100, y - 15, 200, 30)
+            if text_rect.collidepoint(mouse_pos):
+                if i == 2:  # High Scores
                     self.show_high_score = True
                     return None
-                return action
-
+                return actions[i]
+        
         return None
 
     def draw(self):
@@ -332,61 +317,18 @@ class GameOverMenu(Menu):
         self.draw_text(f"Level Reached: {self.level}", self.font_medium, self.text_color,
                       self.screen_width // 2, 300, shadow=True)
 
-        # Options as clickable buttons (centered block)
-        x, start_y, button_width, button_height, spacing = self._button_layout()
-
-        mouse_pos = pygame.mouse.get_pos()
-        # Unified button color scheme for visual consistency
-        base_color = (70, 100, 160)
-        hover_color = (100, 140, 200)
-        button_specs = [
-            ("Play Again", base_color, hover_color),
-            ("Main Menu", base_color, hover_color),
-            ("High Scores", base_color, hover_color),
-            ("Quit", base_color, hover_color),
+        # Options
+        options = [
+            ("R - Play Again", (0, 255, 0)),
+            ("M - Main Menu", (255, 255, 0)),
+            ("H - High Scores", (0, 255, 255)),
+            ("Q - Quit", (255, 0, 0))
         ]
-        for i, (label, base_color, hover_color) in enumerate(button_specs):
-            y = start_y + i * (button_height + spacing)
-            is_mouse_hover = pygame.Rect(x, y, button_width, button_height).collidepoint(mouse_pos)
-            is_selected = (i == self.selected_index)
-            rect = self.draw_button(
-                label,
-                x,
-                y,
-                button_width,
-                button_height,
-                base_color,
-                hover_color,
-                is_hovered=(is_mouse_hover or is_selected)
-            )
 
-        # Instructions
-        self.draw_text("Use UP/DOWN or MOUSE to select, ENTER/CLICK to confirm",
-                       self.font_small, self.text_color,
-                       self.screen_width // 2, self.screen_height - 70)
-        self.draw_text("Shortcuts: R=Play Again, M=Menu, H=High Scores, Q=Quit",
-                       self.font_small, self.text_color,
-                       self.screen_width // 2, self.screen_height - 40)
+        start_y = 400
+        for i, (text, color) in enumerate(options):
+            y = start_y + i * 40
+            self.draw_text(text, self.font_medium, color, self.screen_width // 2, y, shadow=True)
 
         self.update_animation()
 
-    def _update_selection_from_mouse(self):
-        """Set selected_index based on current mouse hover over buttons."""
-        x, start_y, button_width, button_height, spacing = self._button_layout()
-        mouse_pos = pygame.mouse.get_pos()
-        for i in range(4):
-            y = start_y + i * (button_height + spacing)
-            if pygame.Rect(x, y, button_width, button_height).collidepoint(mouse_pos):
-                self.selected_index = i
-                break
-
-    def _button_layout(self):
-        """Compute consistent layout for action buttons and return (x, start_y, w, h, spacing)."""
-        button_width = 320
-        button_height = 52
-        spacing = 16
-        num = 4
-        block_height = num * button_height + (num - 1) * spacing
-        start_y = max(320, self.screen_height // 2 - block_height // 2 + 40)
-        x = self.screen_width // 2 - button_width // 2
-        return x, start_y, button_width, button_height, spacing

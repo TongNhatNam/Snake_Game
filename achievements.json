@@ -1,0 +1,73 @@
+{
+  "achievements": {
+    "first_blood": {
+      "unlocked": true,
+      "unlock_time": "2025-11-09T15:34:27.193406"
+    },
+    "baby_steps": {
+      "unlocked": true,
+      "unlock_time": "2025-11-09T15:33:07.162124"
+    },
+    "getting_started": {
+      "unlocked": true,
+      "unlock_time": "2025-11-09T15:34:27.193419"
+    },
+    "speed_demon": {
+      "unlocked": false,
+      "unlock_time": null
+    },
+    "survivor": {
+      "unlocked": true,
+      "unlock_time": "2025-11-09T15:33:45.553486"
+    },
+    "perfectionist": {
+      "unlocked": true,
+      "unlock_time": "2025-11-09T15:32:45.541079"
+    },
+    "collector": {
+      "unlocked": false,
+      "unlock_time": null
+    },
+    "power_hungry": {
+      "unlocked": false,
+      "unlock_time": null
+    },
+    "high_roller": {
+      "unlocked": true,
+      "unlock_time": "2025-11-09T15:34:27.193423"
+    },
+    "score_master": {
+      "unlocked": false,
+      "unlock_time": null
+    },
+    "level_up": {
+      "unlocked": true,
+      "unlock_time": "2025-11-09T15:34:27.193426"
+    },
+    "master_level": {
+      "unlocked": true,
+      "unlock_time": "2025-11-09T15:34:27.193428"
+    },
+    "glutton": {
+      "unlocked": false,
+      "unlock_time": null
+    },
+    "veteran": {
+      "unlocked": false,
+      "unlock_time": null
+    },
+    "dedication": {
+      "unlocked": false,
+      "unlock_time": null
+    }
+  },
+  "stats": {
+    "total_games": 2,
+    "total_score": 830,
+    "total_food_eaten": 61,
+    "total_powerups_collected": 3,
+    "highest_score": 680,
+    "highest_level": 5,
+    "total_playtime": 127.03540897369385
+  }
+}

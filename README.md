@@ -18,16 +18,14 @@ Một phiên bản nâng cao của game Snake cổ điển với nhiều tính n
 - **Xuyên tường** (xám): Có thể đi qua tường trong 5 giây
 
 ### 🧱 Chướng ngại vật
-- **Tường cố định**: Các khối tường cần tránh
-- **Gai nhọn**: Chướng ngại vật nguy hiểm
-- **Băng**: Chướng ngại vật băng giá
-- **Lửa**: Chướng ngại vật lửa
+- **Đa dạng chướng ngại vật**: Tường, gai, băng, lửa với độ khó tăng dần theo level
 
 ### 🎨 Giao diện đẹp mắt
-- **Menu chính**: Start, Select Level, Settings, High Scores, Quit
+- **Menu chính**: Start, Select Level, Settings, High Scores, Achievements, Quit
 - **Chọn độ khó**: 5 level từ Easy đến Master với số chướng ngại vật và tốc độ khác nhau
-- **Cài đặt**: Điều chỉnh FPS, màu sắc, kích thước màn hình
+- **Cài đặt**: Điều chỉnh FPS và màu sắc snake
 - **High Scores**: Lưu điểm cao nhất
+- **Achievement System**: Hệ thống thành tựu hybrid với notifications
 - **Countdown**: 3-2-1 trước khi bắt đầu game
 - **Hiệu ứng hình ảnh**: Animation và hiệu ứng đẹp mắt
 
@@ -74,70 +72,41 @@ python game.py
 
 Trong menu Settings, bạn có thể điều chỉnh:
 - **FPS**: Tốc độ khung hình (5-60)
-- **Kích thước màn hình**: 600x400 đến 1280x720
-- **Màu sắc**: Màu snake và background
+- **Màu sắc Snake**: Chọn từ 6 màu khác nhau
 - Tất cả cài đặt được lưu tự động
+- Kích thước màn hình cố định 1000x700 (tối ưu nhất)
 
-## 📁 Cấu trúc project
 
-```
-snakegame/
-├── game.py              # File chính chạy game
-├── components/          # Thư mục components
-│   ├── core/           # Core system
-│   │   ├── config.py   # Quản lý cài đặt
-│   │   ├── game_state.py # Quản lý trạng thái game
-│   │   ├── event_handler.py # Xử lý sự kiện
-│   │   ├── game_renderer.py # Hệ thống render
-│   │   ├── game_engine.py # Engine cơ bản
-│   │   └── __init__.py
-│   ├── entities/       # Game objects
-│   │   ├── snake.py    # Class Snake
-│   │   ├── food.py     # Hệ thống thức ăn
-│   │   ├── powerup.py  # Hệ thống power-up
-│   │   ├── obstacle.py # Hệ thống chướng ngại vật
-│   │   └── __init__.py
-│   └── ui/            # User interface
-│       ├── base_menu.py     # Base menu class
-│       ├── game_menus.py    # Main/Level/GameOver menus
-│       ├── settings_menu.py # Settings menu
-│       ├── score_menu.py    # High score menu
-│       └── __init__.py
-├── requirements.txt     # Dependencies
-├── README.md           # Hướng dẫn này
-├── config.json         # File cài đặt (tự tạo)
-└── high_scores.json    # Điểm cao (tự tạo)
-```
 
-## 🌟 Điểm khác biệt
+## 🌟 Điểm nổi bật
 
-- **Timer-based Food System**: Thức ăn đặc biệt và có hại xuất hiện theo thời gian với visual warnings
-- **Power-up Animations**: Hiệu ứng glow, pulse và fade với math-based animations
-- **Dual Input Support**: Hỗ trợ đồng thời keyboard và mouse cho UX tốt nhất
-- **Lives System**: 3 mạng sống thay vì game over ngay - tạo gameplay strategy
-- **Level-based Obstacles**: Chướng ngại vật tăng dần theo độ khó được chọn
-- **Clean Architecture**: Cấu trúc theo industry standards (Core/Entities/UI)
+- **🏆 Hybrid Achievement System**: Kết hợp session và persistent achievements độc đáo
+- **🔔 Real-time Notifications**: Popup animations khi unlock achievements
+- **⚙️ Lives System**: 3 mạng sống thay vì game over ngay lập tức
+- **🎮 Dual Input Support**: Hỗ trợ đồng thời keyboard và mouse
+- **⚡ Performance Optimized**: Font caching, fixed screen size (1000x700)
+- **🏢 Clean Architecture**: Cấu trúc modular dễ bảo trì (Core/Entities/UI)
 
-## ⚡ Hiệu suất
+## 🏆 Hệ thống Achievement
 
-- **Font Caching**: Cache fonts trong countdown để tránh tạo lại mỗi frame
-- **Tối ưu Rendering**: Giảm tạo surface và các thao tác alpha blending
-- **Xử lý lỗi**: Xử lý lỗi mạnh mẽ cho độ ổn định cao
-- **Tiết kiệm bộ nhớ**: Quản lý đối tượng thông minh và phát hiện va chạm
-- **Animation mượt mà**: Gameplay 60 FPS với các lệnh vẽ được tối ưu
+### 🎯 **Hybrid Achievement System**
+Game có **17 achievements** chia làm 2 loại:
 
-## 🎯 Tính năng kỹ thuật
+#### 🔄 **Session Achievements** (6 thành tựu - Màu cam)
+- **Reset mỗi game** - Tạo thử thách mới mỗi lần chơi
+- **VD**: Speed Demon, Survivor, Perfectionist, Collector...
 
-- **Clean Architecture**: Cấu trúc components rõ ràng (Core, Entities, UI)
-- **Object-Oriented Programming**: Sử dụng OOP với inheritance và encapsulation
-- **Separation of Concerns**: Tách biệt logic game, rendering và UI
-- **Configuration system**: Lưu cài đặt trong file JSON với dot notation
-- **State Management**: Quản lý trạng thái game hiệu quả
-- **Event-Driven Architecture**: Xử lý sự kiện tập trung
-- **Modular Design**: Dễ bảo trì và mở rộng
-- **Error handling**: Xử lý lỗi robust
-- **Animation system**: Hiệu ứng mượt mà với math-based animations
-- **Collision detection**: Phát hiện va chạm chính xác với pygame.Rect
+#### 💾 **Persistent Achievements** (11 thành tựu - Màu xanh)
+- **Lưu lâu dài** - Tiến trình không bị mất
+- **VD**: First Blood, High Roller, Veteran, Dedication...
+
+### 🔔 **Features**
+- **Real-time notifications** với slide-in animation
+- **2 sections riêng biệt** trong Achievement Menu
+- **Color coding** để phân biệt loại achievement
+- **Progress tracking** và unlock time
+
+*💡 Xem chi tiết tất cả achievements trong game!*
 
 ## 🏆 Bảng điểm cao
 

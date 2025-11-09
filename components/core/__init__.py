@@ -5,3 +5,4 @@ from .game_state import GameState
 from .event_handler import EventHandler
 from .game_renderer import GameRenderer
 from .audio_manager import audio_manager, AudioManager
+from .achievement_manager import achievement_manager, AchievementManager

@@ -5,9 +5,9 @@ Integrates all game components and manages the game loop
 
 import pygame
 import sys
-from components.core import config, GameState, EventHandler, GameRenderer, audio_manager
+from components.core import config, GameState, EventHandler, GameRenderer, audio_manager, achievement_manager
 from components.entities import Snake, FoodManager, PowerUpManager, ObstacleManager
-from components.ui import MainMenu, LevelSelectMenu, SettingsMenu, HighScoreMenu, GameOverMenu
+from components.ui import MainMenu, LevelSelectMenu, SettingsMenu, HighScoreMenu, GameOverMenu, AchievementMenu, AchievementNotification
 
 class SnakeGame:
     """Main game class"""
@@ -42,6 +42,10 @@ class SnakeGame:
                 self.menus, 
                 config.get_block_size()
             )
+            
+            # Fonts for notifications
+            self.font_medium = pygame.font.Font(None, 40)
+            self.font_small = pygame.font.Font(None, 30)
         except Exception:
             sys.exit(1)
     
@@ -53,8 +57,12 @@ class SnakeGame:
                 "level_select": LevelSelectMenu(self.screen),
                 "settings": SettingsMenu(self.screen),
                 "high_scores": HighScoreMenu(self.screen),
+                "achievements": AchievementMenu(self.screen),
                 "game_over": None
             }
+            
+            # Achievement notification system
+            self.current_notification = None
         except Exception:
             raise
     
@@ -62,6 +70,10 @@ class SnakeGame:
         """Start a new game with selected level"""
         self.game_state.set_state("countdown")
         self.game_state.reset_for_new_game(level)
+        
+        # Track game start for achievements
+        achievement_manager.update_stats("game_start")
+        achievement_manager.reset_session_achievements()  # Reset session achievements for new game
         
         # Create game objects
         area = self.game_state
@@ -98,6 +110,9 @@ class SnakeGame:
         
         # Set movement speed based on level
         self._set_movement_speed(level)
+        
+        # Track game start time for survival achievements
+        self.game_state.start_time = pygame.time.get_ticks()
     
     def _set_movement_speed(self, level):
         """Set snake movement speed based on level"""
@@ -118,21 +133,15 @@ class SnakeGame:
             self.start_new_game(result[1])
         elif result == "restart":
             self.start_new_game(self.game_state.level)
-        elif result == "settings_changed":
-            self._handle_settings_change()
+        elif result == "Achievements":
+            self.game_state.set_state("achievements")
+
         elif result == False:
             return False
         
         return True
     
-    def _handle_settings_change(self):
-        """Handle settings changes"""
-        new_width, new_height = config.get_screen_size()
-        if new_width != self.screen_width or new_height != self.screen_height:
-            self.screen_width, self.screen_height = new_width, new_height
-            self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-            self._init_menus()
-            self.renderer = GameRenderer(self.screen)
+
     
     def _update_game(self):
         """Update game logic"""
@@ -168,6 +177,7 @@ class SnakeGame:
         # Wall/self collision
         if snake.check_collision():
             audio_manager.play_sound("death")
+            achievement_manager.update_stats("death")
             if snake.lose_life():
                 self._game_over()
                 return
@@ -175,6 +185,7 @@ class SnakeGame:
         # Obstacle collision
         if snake.check_obstacle_collision(self.game_objects["obstacle_manager"].obstacles):
             audio_manager.play_sound("death")
+            achievement_manager.update_stats("death")
             if snake.lose_life():
                 self._game_over()
                 return
@@ -184,6 +195,10 @@ class SnakeGame:
         if food:
             score_change = food.get_score()
             self.game_state.score += score_change
+            
+            # Track food eaten for achievements
+            food_type = "normal" if score_change == 10 else "special" if score_change > 0 else "bad"
+            achievement_manager.update_stats("food_eaten", food_type=food_type)
             
             if score_change > 0:
                 snake.grow()
@@ -202,6 +217,9 @@ class SnakeGame:
         if powerup:
             audio_manager.play_sound("powerup")
             snake.apply_power_up(powerup.get_type(), powerup.get_duration())
+            
+            # Track power-up collection for achievements
+            achievement_manager.update_stats("powerup_collected")
     
     def _update_managers(self):
         """Update all managers"""
@@ -213,6 +231,11 @@ class SnakeGame:
     def _game_over(self):
         """Handle game over"""
         audio_manager.play_sound("lose")
+        
+        # Track game end for achievements
+        achievement_manager.update_stats("game_end")
+        achievement_manager.check_achievements()
+        
         self.game_state.set_state("game_over")
         self.menus["game_over"] = GameOverMenu(
             self.screen, self.game_state.score, self.game_state.level
@@ -230,6 +253,8 @@ class SnakeGame:
             self.menus["settings"].draw()
         elif state == "high_scores":
             self.menus["high_scores"].draw()
+        elif state == "achievements":
+            self.menus["achievements"].draw()
         elif state == "countdown":
             self.renderer.draw_countdown(
                 self.game_state.countdown_timer, 
@@ -254,6 +279,9 @@ class SnakeGame:
                 # Handle events
                 running = self._handle_events()
                 
+                # Update achievements
+                self._update_achievements()
+                
                 # Update countdown
                 if self.game_state.state == "countdown":
                     self.game_state.countdown_timer += self.clock.get_time()
@@ -265,6 +293,10 @@ class SnakeGame:
                 
                 # Draw
                 self._draw()
+                
+                # Draw achievement notification
+                self._draw_achievement_notification()
+                
                 pygame.display.flip()
                 
                 # Control FPS
@@ -274,8 +306,42 @@ class SnakeGame:
             pass
         finally:
             # Cleanup
+            achievement_manager.save_progress()
             pygame.quit()
             sys.exit()
+    
+    def _update_achievements(self):
+        """Update achievement system"""
+        # Update survival time
+        if self.game_state.is_playing():
+            survival_time = (pygame.time.get_ticks() - getattr(self.game_state, 'start_time', 0)) / 1000
+            achievement_manager.update_stats("survival_time", time=survival_time)
+        
+        # Update score
+        achievement_manager.update_stats("score_update", score=self.game_state.score)
+        achievement_manager.update_stats("level_update", level=self.game_state.level)
+        
+        # Check for new achievements
+        achievement_manager.check_achievements()
+        
+        # Update notification timer
+        achievement_manager.update_notification_timer(self.clock.get_time())
+        
+        # Get new notification if ready
+        if not self.current_notification:
+            notification_achievement = achievement_manager.get_notification()
+            if notification_achievement:
+                self.current_notification = AchievementNotification(notification_achievement)
+        
+        # Update current notification
+        if self.current_notification:
+            if not self.current_notification.update(self.clock.get_time()):
+                self.current_notification = None
+    
+    def _draw_achievement_notification(self):
+        """Draw achievement notification overlay"""
+        if self.current_notification:
+            self.current_notification.draw(self.screen, self.font_medium, self.font_small)
 
 def main():
     """Main function"""

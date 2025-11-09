@@ -41,9 +41,7 @@ class Snake:
             'wall_pass': 0
         }
         
-        # Visual effects
-        self.grow_animation = 0
-        self.death_animation = 0
+
     
     def move(self):
         """Move the snake"""
@@ -64,14 +62,11 @@ class Snake:
         if len(self.body) > self.length:
             del self.body[0]
         
-        # Update grow animation
-        if self.grow_animation > 0:
-            self.grow_animation -= 1
+
     
     def grow(self, amount=1):
         """Grow the snake by specified amount"""
         self.length += amount
-        self.grow_animation = 10  # Animation duration
     
     def shrink(self, amount=1):
         """Shrink the snake by specified amount"""
@@ -95,8 +90,7 @@ class Snake:
         self.y_change = 0
         self.body = []
         self.length = 1
-        self.grow_animation = 0
-        self.death_animation = 0
+
     
     def apply_power_up(self, power_up_type, duration):
         """Apply a power-up effect"""
@@ -112,32 +106,23 @@ class Snake:
                     self.power_ups[power_up] = False
     
     def draw(self, surface):
-        """Draw the snake with enhanced visuals"""
+        """Draw the snake with optimized rendering"""
         try:
+            snake_color = config.get_color('snake')
+            head_color = config.get_color('snake_head')
+            
             for i, block in enumerate(self.body):
-                # Determine color based on position and effects
-                if i == len(self.body) - 1:  # Head
-                    color = config.get_color('snake_head')
-                    # Add glow effect for power-ups
-                    if any(self.power_ups.values()):
-                        color = tuple(min(255, c + 50) for c in color)
-                else:
-                    color = config.get_color('snake')
+                # Simple color selection
+                color = head_color if i == len(self.body) - 1 else snake_color
                 
-                # Draw main body
+                # Power-up glow effect (simplified)
+                if i == len(self.body) - 1 and any(self.power_ups.values()):
+                    color = tuple(min(255, c + 30) for c in color)
+                
+                # Draw body segment
                 rect = pygame.Rect(block[0], block[1], self.block_size, self.block_size)
                 pygame.draw.rect(surface, color, rect)
-                
-                # Add border for better visibility
                 pygame.draw.rect(surface, (0, 0, 0), rect, 1)
-                
-                # Grow animation effect - optimized
-                if i == len(self.body) - 1 and self.grow_animation > 0:
-                    alpha = int(255 * (self.grow_animation / 10))
-                    glow_surface = pygame.Surface((self.block_size, self.block_size), pygame.SRCALPHA)
-                    glow_surface.set_alpha(alpha)
-                    glow_surface.fill(color)
-                    surface.blit(glow_surface, (block[0], block[1]))
         except Exception:
             pass
     

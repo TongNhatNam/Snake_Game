@@ -29,6 +29,8 @@ class EventHandler:
                 result = self._handle_settings_events(event)
             elif self.game_state.state == "high_scores":
                 result = self._handle_high_scores_events(event)
+            elif self.game_state.state == "achievements":
+                result = self._handle_achievements_events(event)
             elif self.game_state.state == "countdown":
                 result = self._handle_countdown_events(event)
             elif self.game_state.state == "playing":
@@ -59,6 +61,8 @@ class EventHandler:
             self.game_state.set_state("settings")
         elif result == "High Scores":
             self.game_state.set_state("high_scores")
+        elif result == "Achievements":
+            self.game_state.set_state("achievements")
         elif result == "Quit":
             return False
         return True
@@ -84,6 +88,13 @@ class EventHandler:
     def _handle_high_scores_events(self, event):
         """Handle high scores events"""
         result = self.menus["high_scores"].handle_event(event)
+        if result == "back":
+            self.game_state.set_state("menu")
+        return True
+    
+    def _handle_achievements_events(self, event):
+        """Handle achievements menu events"""
+        result = self.menus["achievements"].handle_event(event)
         if result == "back":
             self.game_state.set_state("menu")
         return True
