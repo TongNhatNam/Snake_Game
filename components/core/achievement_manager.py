@@ -273,26 +273,6 @@ class AchievementManager:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception:
             pass  # Silently fail if can't save
-                    aid: {
-                        "unlocked": a.unlocked,
-                        "unlock_time": a.unlock_time
-                    } for aid, a in self.achievements.items()
-                },
-                "stats": {
-                    "total_games": self.game_stats.total_games,
-                    "total_score": self.game_stats.total_score,
-                    "total_food_eaten": self.game_stats.total_food_eaten,
-                    "total_powerups_collected": self.game_stats.total_powerups_collected,
-                    "highest_score": self.game_stats.highest_score,
-                    "highest_level": self.game_stats.highest_level,
-                    "total_playtime": self.game_stats.total_playtime
-                }
-            }
-            
-            with open(self.save_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-        except Exception:
-            pass  # Silently fail if can't save
     
     def load_progress(self):
         """Load only persistent achievement progress from file"""
