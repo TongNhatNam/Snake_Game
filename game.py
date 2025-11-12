@@ -5,7 +5,7 @@ Integrates all game components and manages the game loop
 
 import pygame
 import sys
-from components.core import config, GameState, EventHandler, GameRenderer, audio_manager, achievement_manager
+from components.core import config, GameState, EventHandler, GameRenderer, achievement_manager
 from components.entities import Snake, FoodManager, PowerUpManager, ObstacleManager
 from components.ui import MainMenu, LevelSelectMenu, SettingsMenu, HighScoreMenu, GameOverMenu, AchievementMenu, AchievementNotification
 
@@ -26,9 +26,6 @@ class SnakeGame:
             # Core components
             self.game_state = GameState()
             self.renderer = GameRenderer(self.screen)
-            
-            # Audio manager
-            audio_manager.play_music("background_music")
             
             # Game objects
             self.game_objects = {}
@@ -176,7 +173,6 @@ class SnakeGame:
         
         # Wall/self collision
         if snake.check_collision():
-            audio_manager.play_sound("death")
             achievement_manager.update_stats("death")
             if snake.lose_life():
                 self._game_over()
@@ -184,7 +180,6 @@ class SnakeGame:
         
         # Obstacle collision
         if snake.check_obstacle_collision(self.game_objects["obstacle_manager"].obstacles):
-            audio_manager.play_sound("death")
             achievement_manager.update_stats("death")
             if snake.lose_life():
                 self._game_over()
@@ -202,7 +197,6 @@ class SnakeGame:
             
             if score_change > 0:
                 snake.grow()
-                audio_manager.play_sound("eat")
             elif score_change < 0:
                 snake.shrink()
             
@@ -215,7 +209,6 @@ class SnakeGame:
         # Power-up collision
         powerup = self.game_objects["powerup_manager"].check_collision(snake.get_head_rect())
         if powerup:
-            audio_manager.play_sound("powerup")
             snake.apply_power_up(powerup.get_type(), powerup.get_duration())
             
             # Track power-up collection for achievements
@@ -230,7 +223,6 @@ class SnakeGame:
     
     def _game_over(self):
         """Handle game over"""
-        audio_manager.play_sound("lose")
         
         # Track game end for achievements
         achievement_manager.update_stats("game_end")
@@ -261,10 +253,8 @@ class SnakeGame:
                 self.game_state.countdown_duration
             )
         elif state == "playing":
-            audio_manager.unpause_music()
             self.renderer.draw_game(self.game_objects, self.game_state)
         elif state == "paused":
-            audio_manager.pause_music()
             self.renderer.draw_game(self.game_objects, self.game_state)
             self.renderer.draw_pause()
         elif state == "game_over":
