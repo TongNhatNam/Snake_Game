@@ -5,7 +5,7 @@ Integrates all game components and manages the game loop
 
 import pygame
 import sys
-from components.core import config, GameState, EventHandler, GameRenderer, achievement_manager
+from components.core import config, GameState, EventHandler, GameRenderer, achievement_manager, audio_manager
 from components.entities import Snake, FoodManager, PowerUpManager, ObstacleManager
 from components.ui import MainMenu, LevelSelectMenu, SettingsMenu, HighScoreMenu, GameOverMenu, AchievementMenu, AchievementNotification
 
@@ -43,6 +43,9 @@ class SnakeGame:
             # Fonts for notifications
             self.font_medium = pygame.font.Font(None, 40)
             self.font_small = pygame.font.Font(None, 30)
+            
+            # Start background music
+            audio_manager.play_music()
         except Exception:
             sys.exit(1)
     
@@ -173,6 +176,7 @@ class SnakeGame:
         
         # Wall/self collision
         if snake.check_collision():
+            audio_manager.play_sound('death')
             achievement_manager.update_stats("death")
             if snake.lose_life():
                 self._game_over()
@@ -180,6 +184,7 @@ class SnakeGame:
         
         # Obstacle collision
         if snake.check_obstacle_collision(self.game_objects["obstacle_manager"].obstacles):
+            audio_manager.play_sound('death')
             achievement_manager.update_stats("death")
             if snake.lose_life():
                 self._game_over()
@@ -190,6 +195,8 @@ class SnakeGame:
         if food:
             score_change = food.get_score()
             self.game_state.score += score_change
+            
+            # No eat sound
             
             # Track food eaten for achievements
             food_type = "normal" if score_change == 10 else "special" if score_change > 0 else "bad"
@@ -210,6 +217,8 @@ class SnakeGame:
         powerup = self.game_objects["powerup_manager"].check_collision(snake.get_head_rect())
         if powerup:
             snake.apply_power_up(powerup.get_type(), powerup.get_duration())
+            
+            # No powerup sound
             
             # Track power-up collection for achievements
             achievement_manager.update_stats("powerup_collected")

@@ -46,12 +46,12 @@
     }
   },
   "stats": {
-    "total_games": 12,
-    "total_score": 2750,
-    "total_food_eaten": 206,
+    "total_games": 14,
+    "total_score": 2850,
+    "total_food_eaten": 220,
     "total_powerups_collected": 9,
     "highest_score": 680,
     "highest_level": 5,
-    "total_playtime": 981.933845281601
+    "total_playtime": 1018.1736745834351
   }
 }
