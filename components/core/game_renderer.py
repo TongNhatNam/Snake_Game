@@ -17,8 +17,8 @@ class GameRenderer:
             self.font_large = pygame.font.Font(None, 60)
             self.font_medium = pygame.font.Font(None, 40)
             self.font_small = pygame.font.Font(None, 30)
-        except pygame.error:
-            pass
+        except (pygame.error, OSError, IOError) as e:
+            # Fallback to default font if loading fails
             default_font = pygame.font.get_default_font()
             self.font_large = pygame.font.Font(default_font, 60)
             self.font_medium = pygame.font.Font(default_font, 40)
@@ -36,7 +36,8 @@ class GameRenderer:
             else:
                 text_rect = text_surface.get_rect(topleft=(x, y))
             self.screen.blit(text_surface, text_rect)
-        except Exception:
+        except (pygame.error, AttributeError, ValueError) as e:
+            # Handle pygame rendering errors gracefully
             pass
     
     def draw_countdown(self, countdown_timer, countdown_duration):

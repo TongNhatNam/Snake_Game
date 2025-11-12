@@ -13,9 +13,8 @@ class SettingsMenu(Menu):
         super().__init__(screen)
         self.selected_setting = 0
         self.settings = [
-            ("FPS", "screen.fps", [5, 10, 15, 20, 30, 60], "value"),
-            ("Snake Color", "colors.snake", [(0, 255, 0), (255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 100, 255), (100, 255, 255)], "color"),
-        
+            ("FPS", "screen.fps", [5, 10, 15, 20, 30, 60]),
+            ("Snake Color", "colors.snake", [(0, 255, 0), (255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 100, 255), (100, 255, 255)])
         ]
         self.current_values = []
         self.load_current_values()
@@ -27,13 +26,13 @@ class SettingsMenu(Menu):
     def load_current_values(self):
         """Load current setting values"""
         self.current_values = []
-        for setting_name, key_path, options, setting_type in self.settings:
+        for setting_name, key_path, options in self.settings:
             current_value = config.get(key_path)
             if current_value in options:
                 self.current_values.append(options.index(current_value))
             else:
                 # Find closest match for slider values
-                if setting_type == "slider" and isinstance(current_value, (int, float)):
+                if isinstance(current_value, (int, float)):
                     closest_idx = min(range(len(options)), key=lambda i: abs(options[i] - current_value))
                     self.current_values.append(closest_idx)
                 else:
@@ -50,7 +49,7 @@ class SettingsMenu(Menu):
                 self.current_values[self.selected_setting] = max(0, self.current_values[self.selected_setting] - 1)
                 self.update_setting()
             elif event.key == pygame.K_RIGHT:
-                setting_name, key_path, options, setting_type = self.settings[self.selected_setting]
+                setting_name, key_path, options = self.settings[self.selected_setting]
                 self.current_values[self.selected_setting] = min(len(options) - 1, self.current_values[self.selected_setting] + 1)
                 self.update_setting()
             elif event.key == pygame.K_ESCAPE:
@@ -70,7 +69,7 @@ class SettingsMenu(Menu):
                         return None
                     if right_rect and right_rect.collidepoint(mouse_pos):
                         self.selected_setting = i
-                        setting_name, key_path, options, setting_type = self.settings[i]
+                        setting_name, key_path, options = self.settings[i]
                         self.current_values[i] = min(len(options) - 1, self.current_values[i] + 1)
                         self.update_setting()
                         return None
@@ -99,80 +98,66 @@ class SettingsMenu(Menu):
         """Draw simplified settings menu"""
         self.screen.fill(self.background_color)
 
-        # Simplified layout
-        panel_width = 700
-        panel_height = 100 + len(self.settings) * 55
-        panel_x = (self.screen_width - panel_width) // 2
-        panel_y = (self.screen_height - panel_height) // 2
-        
-        # Panel background
-        panel_bg = (40, 40, 60)
-        panel_border = (120, 120, 160)
-        panel_rect = pygame.Rect(panel_x, panel_y, panel_width, panel_height)
-        pygame.draw.rect(self.screen, panel_bg, panel_rect, 0, border_radius=8)
-        pygame.draw.rect(self.screen, panel_border, panel_rect, 2, border_radius=8)
-
         # Title
-        self.draw_text("SETTINGS", self.font_large, self.highlight_color,
-                      self.screen_width // 2, panel_y - 40)
+        title_surface = self.font_large.render("SETTINGS", True, self.highlight_color)
+        title_rect = title_surface.get_rect(center=(self.screen_width // 2, 150))
+        self.screen.blit(title_surface, title_rect)
 
-        # Settings rows
+        # Settings
         self._button_rects = []
         self._row_rects = []
-        mouse_pos = pygame.mouse.get_pos()
         
-        for i, (setting_name, key_path, options, setting_type) in enumerate(self.settings):
-            y = panel_y + 50 + i * 55
+        start_y = 250
+        row_height = 80
+        
+        for i, (setting_name, key_path, options) in enumerate(self.settings):
+            y = start_y + i * row_height
             is_selected = (i == self.selected_setting)
+            current_value = options[self.current_values[i]]
             
             # Row background
-            row_rect = pygame.Rect(panel_x + 20, y - 20, panel_width - 40, 45)
+            row_rect = pygame.Rect(200, y - 25, 600, 50)
             if is_selected:
                 pygame.draw.rect(self.screen, (60, 60, 80), row_rect, 0, border_radius=5)
                 pygame.draw.rect(self.screen, (255, 255, 100), row_rect, 2, border_radius=5)
             self._row_rects.append(row_rect)
             
-            # Setting name
-            color = self.highlight_color if is_selected else self.text_color
-            self.draw_text(setting_name, self.font_medium, color, panel_x + 40, y, center=False)
+            # Setting name (left aligned)
+            name_color = self.highlight_color if is_selected else self.text_color
+            name_surface = self.font_medium.render(setting_name, True, name_color)
+            self.screen.blit(name_surface, (220, y - 10))
             
-            # Current value and controls
-            current_value = options[self.current_values[i]]
-            
-            # Left/Right buttons
-            btn_size = 30
-            left_rect = pygame.Rect(panel_x + panel_width - 180, y - 15, btn_size, btn_size)
-            right_rect = pygame.Rect(panel_x + panel_width - 60, y - 15, btn_size, btn_size)
-            
-            # Draw buttons
+            # Left button
+            left_rect = pygame.Rect(500, y - 15, 30, 30)
             btn_color = (80, 80, 100) if is_selected else (60, 60, 80)
             pygame.draw.rect(self.screen, btn_color, left_rect, 0, border_radius=5)
-            pygame.draw.rect(self.screen, btn_color, right_rect, 0, border_radius=5)
+            left_text = self.font_medium.render("<", True, (255, 255, 255))
+            left_text_rect = left_text.get_rect(center=left_rect.center)
+            self.screen.blit(left_text, left_text_rect)
             
-            # Button text
-            self.draw_text("<", self.font_medium, (255, 255, 255), left_rect.centerx, left_rect.centery)
-            self.draw_text(">", self.font_medium, (255, 255, 255), right_rect.centerx, right_rect.centery)
-            
-            # Value display in the middle
-            center_x = (left_rect.right + right_rect.left) // 2
-            if setting_type == "color":  # Color
-                color_rect = pygame.Rect(center_x - 10, y - 10, 20, 20)
+            # Value display (center)
+            if isinstance(current_value, tuple):  # Color
+                color_rect = pygame.Rect(560, y - 10, 20, 20)
                 pygame.draw.rect(self.screen, current_value, color_rect)
                 pygame.draw.rect(self.screen, (255, 255, 255), color_rect, 1)
-            elif setting_type == "slider":  # Volume slider
-                # Display percentage
-                volume_pct = int(current_value * 100)
-                self.draw_text(f"{volume_pct}%", self.font_medium, color, center_x, y)
-            else:  # FPS or other values
-                self.draw_text(str(current_value), self.font_medium, color, center_x, y)
+            else:  # FPS
+                value_surface = self.font_medium.render(str(current_value), True, name_color)
+                value_rect = value_surface.get_rect(center=(570, y))
+                self.screen.blit(value_surface, value_rect)
+            
+            # Right button
+            right_rect = pygame.Rect(610, y - 15, 30, 30)
+            pygame.draw.rect(self.screen, btn_color, right_rect, 0, border_radius=5)
+            right_text = self.font_medium.render(">", True, (255, 255, 255))
+            right_text_rect = right_text.get_rect(center=right_rect.center)
+            self.screen.blit(right_text, right_text_rect)
             
             self._button_rects.append((left_rect, right_rect))
 
         # Instructions
-        instr_y = panel_y + panel_height + 20
-        self.draw_text("Arrow keys or click < > to adjust | ESC to go back",
-                      self.font_small, self.text_color,
-                      self.screen_width // 2, instr_y)
+        instr_surface = self.font_small.render("Arrow keys or click < > to adjust | ESC to go back", True, self.text_color)
+        instr_rect = instr_surface.get_rect(center=(self.screen_width // 2, self.screen_height - 100))
+        self.screen.blit(instr_surface, instr_rect)
 
         self.update_animation()
 

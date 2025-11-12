@@ -292,32 +292,44 @@ class SnakeGame:
                 # Control FPS
                 fps = 60 if self.game_state.is_playing() else config.get_fps()
                 self.clock.tick(fps)
-        except Exception:
+        except KeyboardInterrupt:
+            # Handle Ctrl+C gracefully
+            pass
+        except (pygame.error, SystemExit) as e:
+            # Handle pygame and system exit errors
+            pass
+        except (MemoryError, OSError) as e:
+            # Handle system resource errors
             pass
         finally:
             # Cleanup
-            achievement_manager.save_progress()
+            try:
+                achievement_manager.save_progress()
+            except Exception:
+                pass
             pygame.quit()
             sys.exit()
     
     def _update_achievements(self):
-        """Update achievement system"""
-        # Update survival time
+        """Update achievement system (optimized)"""
+        delta_time = self.clock.get_time()
+        
+        # Update survival time only when playing
         if self.game_state.is_playing():
             survival_time = (pygame.time.get_ticks() - getattr(self.game_state, 'start_time', 0)) / 1000
             achievement_manager.update_stats("survival_time", time=survival_time)
-        
-        # Update score
-        achievement_manager.update_stats("score_update", score=self.game_state.score)
-        achievement_manager.update_stats("level_update", level=self.game_state.level)
-        
-        # Check for new achievements
-        achievement_manager.check_achievements()
+            
+            # Update score and level (less frequent updates)
+            achievement_manager.update_stats("score_update", score=self.game_state.score)
+            achievement_manager.update_stats("level_update", level=self.game_state.level)
+            
+            # Check achievements only when playing
+            achievement_manager.check_achievements()
         
         # Update notification timer
-        achievement_manager.update_notification_timer(self.clock.get_time())
+        achievement_manager.update_notification_timer(delta_time)
         
-        # Get new notification if ready
+        # Handle notifications
         if not self.current_notification:
             notification_achievement = achievement_manager.get_notification()
             if notification_achievement:
@@ -325,7 +337,7 @@ class SnakeGame:
         
         # Update current notification
         if self.current_notification:
-            if not self.current_notification.update(self.clock.get_time()):
+            if not self.current_notification.update(delta_time):
                 self.current_notification = None
     
     def _draw_achievement_notification(self):

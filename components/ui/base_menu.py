@@ -43,11 +43,18 @@ class Menu:
         return cls._font_cache[size]
     
     def draw_text(self, text, font, color, x, y, center=True, shadow=False):
-        """Draw text with caching and optional shadow"""
-        # Create cache key
+        """Draw text with optimized caching and optional shadow"""
+        # Create cache key with limited cache size
         cache_key = (str(text), id(font), color, shadow)
         
         if cache_key not in self._text_cache:
+            # Limit cache size to prevent memory issues
+            if len(self._text_cache) > 100:
+                # Remove oldest entries (simple FIFO)
+                oldest_keys = list(self._text_cache.keys())[:20]
+                for key in oldest_keys:
+                    del self._text_cache[key]
+            
             if shadow:
                 shadow_surface = font.render(str(text), True, (0, 0, 0))
                 text_surface = font.render(str(text), True, color)

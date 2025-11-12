@@ -103,7 +103,8 @@ class Food:
             
             self.rotation += 2
             return True  # Food is still alive
-        except Exception:
+        except (ValueError, TypeError, ZeroDivisionError) as e:
+            # Handle animation calculation errors
             return False
     
     def draw(self, surface):
@@ -246,7 +247,8 @@ class FoodManager:
             
             # Update main foods list
             self._update_foods_list()
-        except Exception:
+        except (ValueError, TypeError, AttributeError) as e:
+            # Handle food creation errors gracefully
             pass
     
     def ensure_normal_food(self, snake_body=None, obstacles=None):
@@ -305,7 +307,8 @@ class FoodManager:
                         return removed_food
             
             return None
-        except Exception:
+        except (AttributeError, IndexError, TypeError) as e:
+            # Handle collision detection errors
             return None
     
     def _update_foods_list(self):
@@ -323,7 +326,7 @@ class FoodManager:
             self.bad_spawn_timer = 0
             self.special_spawn_interval = self._get_random_interval("special")
             self.bad_spawn_interval = self._get_random_interval("bad")
-        except Exception:
+        except (AttributeError, TypeError) as e:
             # Fallback to default intervals if config access fails
             self.special_spawn_interval = 20000  # 20 seconds default
             self.bad_spawn_interval = 30000     # 30 seconds default

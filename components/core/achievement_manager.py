@@ -24,9 +24,13 @@ class Achievement:
     
     def check_condition(self, game_stats):
         """Check if achievement condition is met"""
-        if not self.unlocked and self.condition_func(game_stats):
-            self.unlock()
-            return True
+        try:
+            if not self.unlocked and self.condition_func(game_stats):
+                self.unlock()
+                return True
+        except (AttributeError, TypeError, ValueError):
+            # Handle invalid game stats or condition function errors
+            return False
         return False
     
     def unlock(self):
@@ -85,8 +89,8 @@ class AchievementManager:
             ("survivor", "Survivor", "Survive for 60 seconds", "60s", 
              lambda stats: stats.survival_time >= 60, False),
             
-            ("perfectionist", "Perfectionist", "Complete a level without dying", "0x", 
-             lambda stats: stats.perfect_level and stats.current_level > 1, False),
+            ("speed_eater", "Speed Eater", "Eat 3 food items in 5 seconds", "3<<", 
+             lambda stats: stats.consecutive_food >= 3 and stats.survival_time <= 5, False),
             
             ("collector", "Collector", "Collect 10 power-ups in one game", "10+", 
              lambda stats: stats.powerups_collected_this_game >= 10, False),
@@ -137,7 +141,12 @@ class AchievementManager:
             self.achievements[achievement.id] = achievement
     
     def update_stats(self, event_type, **kwargs):
-        """Update game statistics based on events"""
+        """Update game statistics based on events
+        
+        Args:
+            event_type (str): Type of event ('game_start', 'food_eaten', etc.)
+            **kwargs: Additional event data (score, level, food_type, etc.)
+        """
         if event_type == "game_start":
             self.game_stats.reset_session()
             
@@ -181,13 +190,23 @@ class AchievementManager:
             self.game_stats.survival_time = kwargs.get("time", 0)
     
     def check_achievements(self):
-        """Check all achievements and return newly unlocked ones"""
+        """Check all achievements and return newly unlocked ones (optimized)
+        
+        Returns:
+            list: List of newly unlocked Achievement objects
+        
+        Note:
+            Only checks unlocked achievements to improve performance
+        """
         newly_unlocked = []
+        
+        # Only check unlocked achievements to avoid redundant checks
         for achievement in self.achievements.values():
-            if achievement.check_condition(self.game_stats):
+            if not achievement.unlocked and achievement.check_condition(self.game_stats):
                 newly_unlocked.append(achievement)
                 self.pending_notifications.append(achievement)
         
+        # Save progress only if there are new achievements
         if newly_unlocked:
             self.save_progress()
         
@@ -246,7 +265,12 @@ class AchievementManager:
         }
     
     def save_progress(self):
-        """Save only persistent achievement progress to file"""
+        """Save only persistent achievement progress to file
+        
+        Note:
+            Only saves persistent achievements and stats.
+            Session achievements are not saved and reset each game.
+        """
         try:
             # Only save persistent achievements
             persistent_achievements = {
@@ -271,8 +295,12 @@ class AchievementManager:
             
             with open(self.save_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-        except Exception:
-            pass  # Silently fail if can't save
+        except (IOError, OSError, PermissionError) as e:
+            # Handle file system errors gracefully
+            pass
+        except (TypeError, ValueError) as e:
+            # Handle data serialization errors
+            pass
     
     def load_progress(self):
         """Load only persistent achievement progress from file"""
@@ -297,8 +325,12 @@ class AchievementManager:
                 if hasattr(self.game_stats, key):
                     setattr(self.game_stats, key, value)
                     
-        except Exception:
-            pass  # Silently fail if can't load
+        except (IOError, OSError, FileNotFoundError) as e:
+            # Handle file system errors gracefully
+            pass
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            # Handle JSON parsing and data type errors
+            pass
 
 # Global achievement manager instance
 achievement_manager = AchievementManager()

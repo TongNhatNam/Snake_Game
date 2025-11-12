@@ -123,7 +123,8 @@ class Snake:
                 rect = pygame.Rect(block[0], block[1], self.block_size, self.block_size)
                 pygame.draw.rect(surface, color, rect)
                 pygame.draw.rect(surface, (0, 0, 0), rect, 1)
-        except Exception:
+        except (pygame.error, AttributeError, ValueError) as e:
+            # Handle drawing errors gracefully
             pass
     
     def check_collision(self):
