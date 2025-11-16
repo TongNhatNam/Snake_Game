@@ -5,7 +5,7 @@ Integrates all game components and manages the game loop
 
 import pygame
 import sys
-from components.core import config, GameState, EventHandler, GameRenderer, achievement_manager, audio_manager
+from components.core import config, GameState, EventHandler, GameRenderer, achievement_manager
 from components.entities import Snake, FoodManager, PowerUpManager, ObstacleManager
 from components.ui import MainMenu, LevelSelectMenu, SettingsMenu, HighScoreMenu, GameOverMenu, AchievementMenu, AchievementNotification
 
@@ -44,8 +44,7 @@ class SnakeGame:
             self.font_medium = pygame.font.Font(None, 40)
             self.font_small = pygame.font.Font(None, 30)
             
-            # Start background music
-            audio_manager.play_music()
+
         except Exception:
             sys.exit(1)
     
@@ -176,7 +175,6 @@ class SnakeGame:
         
         # Wall/self collision
         if snake.check_collision():
-            audio_manager.play_sound('death')
             achievement_manager.update_stats("death")
             if snake.lose_life():
                 self._game_over()
@@ -184,7 +182,6 @@ class SnakeGame:
         
         # Obstacle collision
         if snake.check_obstacle_collision(self.game_objects["obstacle_manager"].obstacles):
-            audio_manager.play_sound('death')
             achievement_manager.update_stats("death")
             if snake.lose_life():
                 self._game_over()
