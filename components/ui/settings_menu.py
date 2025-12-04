@@ -25,13 +25,13 @@ class SettingsMenu(Menu):
 
     def load_current_values(self):
         """Load current setting values"""
+
         self.current_values = []
         for setting_name, key_path, options in self.settings:
             current_value = config.get(key_path)
             if current_value in options:
                 self.current_values.append(options.index(current_value))
             else:
-                # Find closest match for slider values
                 if isinstance(current_value, (int, float)):
                     closest_idx = min(range(len(options)), key=lambda i: abs(options[i] - current_value))
                     self.current_values.append(closest_idx)
@@ -55,9 +55,8 @@ class SettingsMenu(Menu):
             elif event.key == pygame.K_ESCAPE:
                 return "back"
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # Left click
+            if event.button == 1:
                 mouse_pos = pygame.mouse.get_pos()
-                # Check click on any left/right button
                 for i, pair in enumerate(self._button_rects):
                     if not pair:
                         continue
@@ -73,14 +72,12 @@ class SettingsMenu(Menu):
                         self.current_values[i] = min(len(options) - 1, self.current_values[i] + 1)
                         self.update_setting()
                         return None
-                # Click a row selects it
                 for i, row in enumerate(self._row_rects):
                     if row and row.collidepoint(mouse_pos):
                         self.selected_setting = i
                         return None
         elif event.type == pygame.MOUSEMOTION:
             mouse_pos = pygame.mouse.get_pos()
-            # Hovering a row updates selection for better UX
             for i, row in enumerate(self._row_rects):
                 if row and row.collidepoint(mouse_pos):
                     self.selected_setting = i
@@ -96,13 +93,11 @@ class SettingsMenu(Menu):
 
     def draw(self):
         """Draw simplified settings menu with modern styling"""
-        # Animated gradient background
         gradient_offset = int(40 * math.sin(self.animation_timer * 0.02))
         color1 = (20, 40, 60)
         color2 = (50, 40, 100 + gradient_offset // 2)
         self.draw_gradient_background(color1, color2)
 
-        # Title
         title_y = 100 + int(8 * math.sin(self.animation_timer * 0.04))
         title_color = (100 + int(100 * math.sin(self.animation_timer * 0.05)),
                       200 + int(50 * math.sin(self.animation_timer * 0.06)),
@@ -110,7 +105,6 @@ class SettingsMenu(Menu):
         self.draw_text("SETTINGS", self.font_large, title_color,
                       self.screen_width // 2, title_y, shadow=True)
 
-        # Settings
         self._button_rects = []
         self._row_rects = []
         
@@ -122,17 +116,14 @@ class SettingsMenu(Menu):
             is_selected = (i == self.selected_setting)
             current_value = options[self.current_values[i]]
             
-            # Smooth scale animation
             target_scale = 1.05 if is_selected else 1.0
             self.row_scales[i] += (target_scale - self.row_scales[i]) * 0.1
             
-            # Row background with scale
             row_width = int(600 * self.row_scales[i])
             row_height_scaled = int(60 * self.row_scales[i])
             row_x = self.screen_width // 2 - row_width // 2
             row_y = y - (row_height_scaled - 60) // 2
             
-            # Gradient background
             for draw_y in range(row_height_scaled):
                 progress = draw_y / row_height_scaled
                 if is_selected:
@@ -146,11 +137,9 @@ class SettingsMenu(Menu):
             
             row_rect = pygame.Rect(row_x, row_y, row_width, row_height_scaled)
             
-            # Border
             if is_selected:
                 border_color = (255, 200 + int(55 * math.sin(self.animation_timer * 0.08)), 100)
                 border_width = 3
-                # Glow effect
                 glow_color = (border_color[0] // 2, border_color[1] // 2, border_color[2] // 2)
                 pygame.draw.rect(self.screen, glow_color, (row_x - 2, row_y - 2, 
                                 row_width + 4, row_height_scaled + 4), 1)
@@ -161,12 +150,10 @@ class SettingsMenu(Menu):
             pygame.draw.rect(self.screen, border_color, row_rect, border_width)
             self._row_rects.append(row_rect)
             
-            # Setting name (left aligned)
             name_color = (255, 255, 100) if is_selected else (200, 200, 200)
             self.draw_text(setting_name, self.font_medium, name_color,
                           row_x + 30, row_y + 15, center=False)
             
-            # Left button
             left_rect = pygame.Rect(row_x + row_width - 170, row_y + row_height_scaled // 2 - 15, 35, 30)
             btn_color = (100, 120, 180) if is_selected else (80, 100, 160)
             pygame.draw.rect(self.screen, btn_color, left_rect, 0, border_radius=5)
@@ -176,17 +163,15 @@ class SettingsMenu(Menu):
             left_text_rect = left_text.get_rect(center=left_rect.center)
             self.screen.blit(left_text, left_text_rect)
             
-            # Value display (center)
             if isinstance(current_value, tuple):  # Color
                 color_rect = pygame.Rect(row_x + row_width - 115, row_y + row_height_scaled // 2 - 10, 25, 20)
                 pygame.draw.rect(self.screen, current_value, color_rect)
                 pygame.draw.rect(self.screen, (255, 255, 255), color_rect, 2)
-            else:  # FPS
+            else:
                 value_surface = self.font_medium.render(str(current_value), True, name_color)
                 value_rect = value_surface.get_rect(center=(row_x + row_width - 102, row_y + row_height_scaled // 2))
                 self.screen.blit(value_surface, value_rect)
             
-            # Right button
             right_rect = pygame.Rect(row_x + row_width - 70, row_y + row_height_scaled // 2 - 15, 35, 30)
             pygame.draw.rect(self.screen, btn_color, right_rect, 0, border_radius=5)
             pygame.draw.rect(self.screen, (255, 255, 100) if is_selected else (150, 150, 150), 
@@ -197,10 +182,8 @@ class SettingsMenu(Menu):
             
             self._button_rects.append((left_rect, right_rect))
 
-        # Draw particles
         self.draw_animated_particles()
 
-        # Instructions
         instr_color = (180, 180, 200)
         self.draw_text("Arrow keys or click < > to adjust | ESC to go back",
                       self.font_small, instr_color,

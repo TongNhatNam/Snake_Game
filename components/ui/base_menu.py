@@ -9,30 +9,24 @@ from ..core import config
 class Menu:
     """Base menu class with performance optimizations"""
     
-    # Class-level font cache
     _font_cache = {}
     
     def __init__(self, screen):
         self.screen = screen
         self.screen_width, self.screen_height = 1000, 700  # Fixed optimal size
         
-        # Cached fonts for performance
         self.font_large = self._get_cached_font(60)
         self.font_medium = self._get_cached_font(40)
         self.font_small = self._get_cached_font(30)
         
-        # Cached colors
         self.text_color = config.get_color('text')
         self.highlight_color = config.get_color('text_highlight')
         self.background_color = config.get_color('background')
         
-        # Animation
         self.animation_timer = 0
         
-        # Text surface cache for frequently used text
         self._text_cache = {}
         
-        # Particles for effects
         self.particles = []
     
     @classmethod
@@ -47,13 +41,10 @@ class Menu:
     
     def draw_text(self, text, font, color, x, y, center=True, shadow=False):
         """Draw text with optimized caching and optional shadow"""
-        # Create cache key with limited cache size
         cache_key = (str(text), id(font), color, shadow)
         
         if cache_key not in self._text_cache:
-            # Limit cache size to prevent memory issues
             if len(self._text_cache) > 100:
-                # Remove oldest entries (simple FIFO)
                 oldest_keys = list(self._text_cache.keys())[:20]
                 for key in oldest_keys:
                     del self._text_cache[key]
@@ -86,29 +77,23 @@ class Menu:
         """Draw modern button with smooth effects"""
         button_rect = pygame.Rect(x, y, width, height)
         
-        # Smooth transition between states
         button_color = hover_color if is_hovered else color
         
-        # Create gradient fill for button - more refined
         for i in range(height):
             progress = i / height
             if is_hovered:
-                # Brighter gradient when hovered
                 line_color = tuple(
                     int(button_color[j] + (255 - button_color[j]) * progress * 0.2)
                     for j in range(3)
                 )
             else:
-                # Subtle darkening
                 line_color = tuple(
                     int(button_color[j] * (0.85 + progress * 0.15))
                     for j in range(3)
                 )
             pygame.draw.line(self.screen, line_color, (x, y + i), (x + width, y + i))
         
-        # Draw shadow/glow effect
         if is_hovered:
-            # Glow effect with blurred appearance
             for offset in [8, 6, 4]:
                 glow_color = (255, 200, 100)
                 alpha_val = int(30 * (1 - offset / 8))
@@ -118,25 +103,17 @@ class Menu:
                 glow_surface.fill(glow_color)
                 self.screen.blit(glow_surface, (x - offset//2, y - offset//2))
         
-        # Border with better styling
         border_thickness = 2
         border_color = (100, 150, 255) if is_hovered else (150, 150, 200)
         
-        # Draw rounded corners effect with lines
         corner_radius = 8
-        # Top border
         pygame.draw.line(self.screen, border_color, (x + corner_radius, y), (x + width - corner_radius, y), border_thickness)
-        # Bottom border
         pygame.draw.line(self.screen, border_color, (x + corner_radius, y + height), (x + width - corner_radius, y + height), border_thickness)
-        # Left border
         pygame.draw.line(self.screen, border_color, (x, y + corner_radius), (x, y + height - corner_radius), border_thickness)
-        # Right border
         pygame.draw.line(self.screen, border_color, (x + width, y + corner_radius), (x + width, y + height - corner_radius), border_thickness)
         
-        # Text with elegant shadow
         text_color = (255, 255, 255) if is_hovered else (220, 220, 230)
         
-        # Soft shadow
         self.draw_text(text, self.font_medium, (0, 0, 0), 
                       x + width//2 + 1, y + height//2 + 1, shadow=False)
         self.draw_text(text, self.font_medium, text_color, 
@@ -147,7 +124,6 @@ class Menu:
     def draw_gradient_background(self, color1=(20, 30, 60), color2=(40, 60, 120)):
         """Draw gradient background"""
         for y in range(self.screen_height):
-            # Linear interpolation between color1 and color2
             progress = y / self.screen_height
             color = tuple(int(color1[i] + (color2[i] - color1[i]) * progress) for i in range(3))
             pygame.draw.line(self.screen, color, (0, y), (self.screen_width, y))
@@ -155,7 +131,6 @@ class Menu:
     def draw_animated_particles(self):
         """Draw and update animated particles"""
         for particle in self.particles[:]:
-            # Update particle
             particle['x'] += particle['vx']
             particle['y'] += particle['vy']
             particle['life'] -= 1
@@ -165,7 +140,6 @@ class Menu:
                 self.particles.remove(particle)
                 continue
             
-            # Draw particle with fade
             alpha = int(255 * (particle['life'] / particle['max_life']))
             color = particle['color']
             size = max(1, int(particle['size'] * (particle['life'] / particle['max_life'])))

@@ -115,13 +115,11 @@ class Snake:
                 is_head = (i == len(self.body) - 1)
                 color = head_color if is_head else snake_color
                 
-                # Power-up glow effect
                 if is_head and any(self.power_ups.values()):
                     color = tuple(min(255, c + 50) for c in color)
                 
                 x, y = int(block[0]), int(block[1])
                 
-                # Draw body segment with modern style
                 if is_head:
                     self._draw_head(surface, x, y, color)
                 else:
@@ -150,7 +148,6 @@ class Snake:
             center_x = x + self.block_size // 2
             center_y = y + self.block_size // 2
             
-            # Determine eye positions based on movement direction
             if self.x_change > 0:  # Moving right
                 left_eye = (center_x + 4, center_y - 3)
                 right_eye = (center_x + 4, center_y + 3)
@@ -195,13 +192,13 @@ class Snake:
     def check_collision(self):
         """Check for collisions with walls and self"""
         try:
-            # Wall collision (with wall pass power-up check)
+            # Wall collision
             if not self.power_ups['wall_pass']:
                 if (self.x >= self.game_area_x + self.game_area_width or self.x < self.game_area_x or 
                     self.y >= self.game_area_y + self.game_area_height or self.y < self.game_area_y):
                     return True
             
-            # Wall pass - wrap around game area
+            # Wall pass
             if self.power_ups['wall_pass']:
                 if self.x >= self.game_area_x + self.game_area_width:
                     self.x = self.game_area_x
@@ -220,22 +217,19 @@ class Snake:
                     if self.body:
                         self.body[-1][1] = self.y
             
-            # Self collision - optimized check
+            # Self collision
             if len(self.body) > 1:
                 head_pos = [self.x, self.y]
                 return head_pos in self.body[:-1]
-            
             return False
         except (IndexError, TypeError, KeyError):
-            return True  # Treat errors as collision
+            return True 
     
     def check_obstacle_collision(self, obstacles):
         """Check collision with obstacles"""
         try:
-            # If wall_pass power-up is active, allow passing through obstacles
             if self.power_ups.get('wall_pass'):
                 return False
-
             head_rect = pygame.Rect(self.x, self.y, self.block_size, self.block_size)
             return any(head_rect.colliderect(obstacle.rect) for obstacle in obstacles)
         except (AttributeError, TypeError):
@@ -243,7 +237,6 @@ class Snake:
     
     def change_direction(self, dx, dy):
         """Change snake direction with improved logic"""
-        # Prevent 180-degree turns
         if dx != 0 and self.x_change != -dx:
             self.x_change = dx
             self.y_change = 0
