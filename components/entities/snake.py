@@ -41,8 +41,6 @@ class Snake:
             'wall_pass': 0
         }
         
-
-    
     def move(self):
         """Move the snake"""
         
