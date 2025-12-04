@@ -15,6 +15,7 @@ class HighScoreMenu(Menu):
         super().__init__(screen)
         self.high_scores_file = "high_scores.json"
         self.high_scores = self.load_high_scores()
+        self.selected_score = None
 
     def load_high_scores(self):
         """Load high scores from file"""
@@ -46,65 +47,119 @@ class HighScoreMenu(Menu):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 return "back"
+            elif event.key == pygame.K_UP:
+                # Scroll up
+                pass
+            elif event.key == pygame.K_DOWN:
+                # Scroll down
+                pass
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left click anywhere to go back
                 return "back"
         return None
 
     def draw(self):
-        """Draw high scores menu"""
-        self.screen.fill(self.background_color)
+        """Draw high scores menu with modern styling"""
+        # Animated gradient background
+        gradient_offset = int(40 * math.sin(self.animation_timer * 0.02))
+        color1 = (20, 50, 40)
+        color2 = (50, 80 + gradient_offset // 2, 100)
+        self.draw_gradient_background(color1, color2)
 
-        # Title with glow effect
-        title_y = 100 + int(3 * math.sin(self.animation_timer * 0.05))
+        # Title with animation
+        title_y = 80 + int(10 * math.sin(self.animation_timer * 0.04))
         
-        # Draw title glow
-        for offset in range(1, 3):
-            glow_color = tuple(int(c * 0.4) for c in self.highlight_color)
+        # Multi-layer glow effect
+        for layer in range(3, 0, -1):
+            glow_alpha = int(100 / (layer * 1.5))
+            glow_color = (100 - glow_alpha, 200 - glow_alpha, 100)
+            offset = layer * 2
             self.draw_text("HIGH SCORES", self.font_large, glow_color,
                           self.screen_width // 2 + offset, title_y + offset)
         
-        self.draw_text("HIGH SCORES", self.font_large, self.highlight_color,
+        # Main title with pulsing color
+        title_color = (100 + int(100 * math.sin(self.animation_timer * 0.05)),
+                      200 + int(50 * math.sin(self.animation_timer * 0.06)),
+                      100 + int(50 * math.sin(self.animation_timer * 0.07)))
+        self.draw_text("HIGH SCORES", self.font_large, title_color,
                       self.screen_width // 2, title_y, shadow=True)
 
         # High scores
         if not self.high_scores:
-            self.draw_text("No scores yet!", self.font_medium, self.text_color,
+            no_scores_color = (180, 180, 200)
+            self.draw_text("No scores yet! Be the first!", self.font_medium, no_scores_color,
                           self.screen_width // 2, 300)
         else:
             start_y = 200
             for i, score_data in enumerate(self.high_scores):
-                y = start_y + i * 40
+                y = start_y + i * 45
                 rank = i + 1
                 score = score_data["score"]
                 level = score_data["level"]
 
-                # Enhanced score display with background - error handling
+                # Enhanced score display background with animation
                 try:
-                    score_bg = pygame.Rect(150, y - 15, 400, 30)
-                    bg_color = (40, 40, 60) if i % 2 == 0 else (50, 50, 70)
-                    pygame.draw.rect(self.screen, bg_color, score_bg)
-                    pygame.draw.rect(self.screen, (100, 100, 100), score_bg, 1)
+                    score_bg = pygame.Rect(150, y - 18, 700, 36)
+                    
+                    # Animated gradient background
+                    if rank <= 3:
+                        # Top 3 have special color
+                        if rank == 1:
+                            bg_color = (255, 200, 0)  # Gold
+                            pulse = int(30 * math.sin(self.animation_timer * 0.1))
+                        elif rank == 2:
+                            bg_color = (200, 200, 200)  # Silver
+                            pulse = int(20 * math.sin(self.animation_timer * 0.08))
+                        else:
+                            bg_color = (200, 120, 60)  # Bronze
+                            pulse = int(20 * math.sin(self.animation_timer * 0.06))
+                        
+                        # Gradient animation
+                        for draw_y in range(36):
+                            progress = draw_y / 36
+                            line_color = tuple(int(c * (0.3 + 0.2 * progress)) for c in bg_color)
+                            pygame.draw.line(self.screen, line_color,
+                                           (150, y - 18 + draw_y), (850, y - 18 + draw_y))
+                    else:
+                        # Regular rows
+                        bg_color = (50, 50, 80) if i % 2 == 0 else (60, 60, 90)
+                        pygame.draw.rect(self.screen, bg_color, score_bg)
+                    
+                    pygame.draw.rect(self.screen, (150, 150, 150), score_bg, 2)
                 except Exception:
                     pass
                 
-                # Rank with special color for top 3 - safe array access
+                # Rank with special color for top 3
                 try:
                     top_colors = [(255, 215, 0), (192, 192, 192), (205, 127, 50)]
-                    rank_color = top_colors[i] if i < len(top_colors) else self.text_color
+                    rank_color = top_colors[i] if i < len(top_colors) else (200, 200, 255)
                 except (IndexError, TypeError):
-                    rank_color = self.text_color
-                self.draw_text(f"{rank}.", self.font_medium, rank_color, 200, y, shadow=True)
+                    rank_color = (200, 200, 255)
+                
+                rank_text = f"#{rank}" if i < 3 else f"{rank}."
+                self.draw_text(rank_text, self.font_medium, rank_color, 200, y, shadow=True)
 
-                # Score
-                self.draw_text(f"{score:06d}", self.font_medium, self.highlight_color, 300, y, shadow=True)
+                # Score with larger font for top scores
+                if i < 3:
+                    score_color = (255, 255, 100)
+                    score_font = self.font_large
+                else:
+                    score_color = (200, 200, 255)
+                    score_font = self.font_medium
+                
+                self.draw_text(f"{score:06d}", score_font, score_color, 450, y, shadow=True)
 
                 # Level
-                self.draw_text(f"Level {level}", self.font_medium, self.text_color, 500, y, shadow=True)
+                level_color = (150, 200, 255)
+                self.draw_text(f"Level {level}", self.font_medium, level_color, 700, y, shadow=True)
+
+        # Draw particles
+        self.draw_animated_particles()
 
         # Instructions
+        instr_color = (180, 180, 200)
         self.draw_text("Press ESC or CLICK anywhere to go back",
-                      self.font_small, self.text_color,
+                      self.font_small, instr_color,
                       self.screen_width // 2, self.screen_height - 50)
 
         self.update_animation()

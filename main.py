@@ -1,10 +1,6 @@
-"""
-Main game file for Enhanced Snake Game
-Integrates all game components and manages the game loop
-"""
-
 import pygame
 import sys
+import asyncio
 from components.core import config, GameState, EventHandler, GameRenderer, achievement_manager
 from components.entities import Snake, FoodManager, PowerUpManager, ObstacleManager
 from components.ui import MainMenu, LevelSelectMenu, SettingsMenu, HighScoreMenu, GameOverMenu, AchievementMenu, AchievementNotification
@@ -43,6 +39,11 @@ class SnakeGame:
             # Fonts for notifications
             self.font_medium = pygame.font.Font(None, 40)
             self.font_small = pygame.font.Font(None, 30)
+            
+            # Death notification
+            self.death_notification_time = 0
+            self.death_notification_duration = 0
+            self.lives_remaining = 0
             
 
         except Exception:
@@ -179,6 +180,9 @@ class SnakeGame:
             if snake.lose_life():
                 self._game_over()
                 return
+            else:
+                # Still have lives left - show retry message
+                self._show_death_notification(snake.get_lives())
         
         # Obstacle collision
         if snake.check_obstacle_collision(self.game_objects["obstacle_manager"].obstacles):
@@ -186,6 +190,9 @@ class SnakeGame:
             if snake.lose_life():
                 self._game_over()
                 return
+            else:
+                # Still have lives left - show retry message
+                self._show_death_notification(snake.get_lives())
         
         # Food collision
         food = self.game_objects["food_manager"].check_collision(snake.get_head_rect())
@@ -239,6 +246,13 @@ class SnakeGame:
             self.screen, self.game_state.score, self.game_state.level
         )
     
+    def _show_death_notification(self, lives_remaining):
+        """Show notification when snake dies but still has lives"""
+        # Create temporary notification
+        self.death_notification_time = pygame.time.get_ticks()
+        self.death_notification_duration = 2000  # 2 seconds
+        self.lives_remaining = lives_remaining
+    
     def _draw(self):
         """Draw everything based on current state"""
         state = self.game_state.state
@@ -267,7 +281,11 @@ class SnakeGame:
             self.menus["game_over"].draw()
     
     def run(self):
-        """Main game loop"""
+        """Main game loop - wrapper for async version"""
+        asyncio.run(self.async_run())
+    
+    async def async_run(self):
+        """Main game loop - async version for web"""
         running = True
         
         try:
@@ -298,6 +316,9 @@ class SnakeGame:
                 # Control FPS
                 fps = 60 if self.game_state.is_playing() else config.get_fps()
                 self.clock.tick(fps)
+                
+                # Critical for web - yield to browser
+                await asyncio.sleep(0)
         except KeyboardInterrupt:
             # Handle Ctrl+C gracefully
             pass
@@ -348,6 +369,23 @@ class SnakeGame:
     
     def _draw_achievement_notification(self):
         """Draw achievement notification overlay"""
+        # Draw death notification (chết nhưng còn lượt) - at bottom
+        if self.death_notification_time > 0:
+            elapsed = pygame.time.get_ticks() - self.death_notification_time
+            if elapsed < self.death_notification_duration:
+                # Death message at bottom
+                death_text = self.font_small.render(f"Lost 1 Life! {self.lives_remaining} Remaining", True, (255, 100, 100))
+                death_rect = death_text.get_rect(center=(self.screen_width // 2, self.screen_height - 70))
+                self.screen.blit(death_text, death_rect)
+                
+                # Retry message at very bottom
+                retry_text = self.font_small.render("Use Arrow or WASD to play again", True, (200, 200, 200))
+                retry_rect = retry_text.get_rect(center=(self.screen_width // 2, self.screen_height - 30))
+                self.screen.blit(retry_text, retry_rect)
+            else:
+                self.death_notification_time = 0
+        
+        # Draw achievement notification
         if self.current_notification:
             self.current_notification.draw(self.screen, self.font_medium, self.font_small)
 

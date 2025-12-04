@@ -14,7 +14,8 @@ class PowerUp:
     def __init__(self, x=None, y=None, power_type="speed_boost"):
         self.block_size = config.get_block_size()
         self.power_type = power_type
-        # Game area bounds (will be set by PowerUpManager)
+
+        # Game area
         self.game_area_x = 0
         self.game_area_y = 0
         self.game_area_width = 800

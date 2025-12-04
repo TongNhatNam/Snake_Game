@@ -4,6 +4,7 @@ Game-specific menu classes
 
 import pygame
 import math
+import random
 from .base_menu import Menu
 from ..core import config
 
@@ -13,16 +14,19 @@ class MainMenu(Menu):
     def __init__(self, screen):
         super().__init__(screen)
         self.selected_option = 0
-        self.options = ["Start Game", "Settings", "High Scores", "Achievements", "Quit"]
+        self.options = ["Start Game", "Settings", "High Scores", "Achievements"]
         self.buttons = []
+        self.button_hover_scale = [1.0] * len(self.options)
 
     def handle_event(self, event):
         """Handle menu events"""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 self.selected_option = (self.selected_option - 1) % len(self.options)
+                self.spawn_particles(500, 300 + self.selected_option * 70, count=3)
             elif event.key == pygame.K_DOWN:
                 self.selected_option = (self.selected_option + 1) % len(self.options)
+                self.spawn_particles(500, 300 + self.selected_option * 70, count=3)
             elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                 selected_action = self.options[self.selected_option]
                 if selected_action == "Start Game":
@@ -45,62 +49,101 @@ class MainMenu(Menu):
         return None
 
     def draw(self):
-        """Draw main menu"""
-        self.screen.fill(self.background_color)
+        """Draw main menu with modern web-friendly design"""
+        # Elegant gradient background
+        gradient_offset = int(20 * math.sin(self.animation_timer * 0.02))
+        color1 = (15, 25, 50)
+        color2 = (35, 55, 100)
+        self.draw_gradient_background(color1, color2)
 
-        # Title with animation and glow effect
-        title_y = 150 + int(10 * math.sin(self.animation_timer * 0.05))
+        # Add subtle grid pattern background
+        grid_color = (30, 40, 80)
+        for x in range(0, self.screen_width, 50):
+            pygame.draw.line(self.screen, grid_color, (x, 0), (x, self.screen_height), 1)
+        for y in range(0, self.screen_height, 50):
+            pygame.draw.line(self.screen, grid_color, (0, y), (self.screen_width, y), 1)
+
+        # Title with elegant animation
+        title_y = 80 + int(8 * math.sin(self.animation_timer * 0.03))
         
-        # Draw title glow
-        for offset in range(1, 4):
-            glow_color = tuple(int(c * 0.3) for c in self.highlight_color)
+        # Glow layers
+        for layer in range(4, 0, -1):
+            glow_alpha = int(60 / layer)
+            glow_color = (100 - glow_alpha, 180 - glow_alpha, 100)
+            offset = layer * 1
             self.draw_text("SNAKE GAME", self.font_large, glow_color,
                           self.screen_width // 2 + offset, title_y + offset)
         
-        # Main title
-        self.draw_text("SNAKE GAME", self.font_large, self.highlight_color,
+        # Main title - vibrant green
+        title_color = (100, 255, 120)
+        self.draw_text("SNAKE GAME", self.font_large, title_color,
                       self.screen_width // 2, title_y, shadow=True)
 
-        # Subtitle with pulse effect - fixed color handling
-        subtitle_alpha = int(200 + 55 * math.sin(self.animation_timer * 0.03))
-        if len(self.text_color) >= 3:
-            subtitle_color = (*self.text_color[:3],)
-        else:
-            subtitle_color = self.text_color
-        self.draw_text("Enhanced Edition", self.font_medium, subtitle_color,
-                      self.screen_width // 2, title_y + 60, shadow=True)
+        # Elegant subtitle
+        subtitle_color = (180, 200, 220)
+        self.draw_text("Classic Game | Modern Experience", self.font_small, subtitle_color,
+                      self.screen_width // 2, title_y + 60)
 
-        # Menu options
-        start_y = 300
-        button_width = 300
+        # Menu options with modern card design
+        start_y = 280
+        button_width = 280
         button_height = 50
-        button_spacing = 70
+        button_spacing = 75
 
         self.buttons = []
         for i, option in enumerate(self.options):
             y = start_y + i * button_spacing
             is_selected = (i == self.selected_option)
 
-            # Enhanced button colors
-            base_color = (40, 40, 80) if not is_selected else (80, 80, 120)
-            hover_color = (120, 120, 180)
+            # Smooth hover scale animation
+            target_scale = 1.08 if is_selected else 1.0
+            self.button_hover_scale[i] += (target_scale - self.button_hover_scale[i]) * 0.15
+
+            # Scaled button dimensions
+            scaled_width = int(button_width * self.button_hover_scale[i])
+            scaled_height = int(button_height * self.button_hover_scale[i])
+            centered_x = self.screen_width // 2 - scaled_width // 2
+            centered_y = y - (scaled_height - button_height) // 2
+
+            # Modern color scheme
+            if is_selected:
+                base_color = (50, 100, 200)
+                hover_color = (80, 140, 255)
+            else:
+                base_color = (40, 70, 150)
+                hover_color = (60, 110, 200)
             
             button_rect = self.draw_button(
                 option,
-                self.screen_width // 2 - button_width // 2,
-                y,
-                button_width,
-                button_height,
+                centered_x,
+                centered_y,
+                scaled_width,
+                scaled_height,
                 base_color,
                 hover_color,
                 is_selected
             )
+            
+            # Particle effects on selection
+            if is_selected and self.animation_timer % 15 == 0:
+                self.spawn_particles(centered_x + scaled_width // 2, 
+                                   centered_y + scaled_height // 2, 
+                                   count=3, color=(100, 255, 150))
+            
             self.buttons.append(button_rect)
 
-        # Instructions
-        self.draw_text("Use ARROW KEYS or MOUSE to navigate, ENTER or CLICK to select",
-                      self.font_small, self.text_color,
-                      self.screen_width // 2, self.screen_height - 50)
+        # Draw particles
+        self.draw_animated_particles()
+
+        # Modern footer with instructions
+        footer_y = self.screen_height - 50
+        instr_color = (140, 160, 200)
+        self.draw_text("ARROW KEYS or MOUSE TO NAVIGATE",
+                      self.font_small, instr_color,
+                      self.screen_width // 2, footer_y)
+        self.draw_text("ENTER or CLICK TO SELECT",
+                      self.font_small, instr_color,
+                      self.screen_width // 2, footer_y + 35)
 
         self.update_animation()
 
@@ -114,6 +157,7 @@ class LevelSelectMenu(Menu):
         self.level_names = config.get("levels.level_names")
         self.obstacle_counts = config.get("levels.obstacle_count")
         self.speed_multipliers = config.get("levels.speed_multiplier")
+        self.level_scales = [1.0] * self.max_level
 
     def handle_event(self, event):
         """Handle level selection events"""
@@ -128,88 +172,173 @@ class LevelSelectMenu(Menu):
                 return "back"
         elif event.type == pygame.MOUSEMOTION:
             mouse_pos = pygame.mouse.get_pos()
-            start_y = 200
+            start_y = 140
             level_height = 80
+            card_width = 700
+            card_x = (self.screen_width - card_width) // 2
+            
             for i in range(self.max_level):
                 y = start_y + i * level_height
-                box_width = 400
-                box_height = 60
-                box_x = self.screen_width // 2 - box_width // 2
-                box_y = y - 10
-                level_rect = pygame.Rect(box_x, box_y, box_width, box_height)
+                card_height = 65
+                card_y = y - (card_height - 65) // 2
+                level_rect = pygame.Rect(card_x, card_y, card_width, card_height)
                 if level_rect.collidepoint(mouse_pos):
                     self.selected_level = i
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left click
                 mouse_pos = pygame.mouse.get_pos()
-                start_y = 200
+                start_y = 140
                 level_height = 80
+                card_width = 700
+                card_x = (self.screen_width - card_width) // 2
+                
                 for i in range(self.max_level):
                     y = start_y + i * level_height
-                    box_width = 400
-                    box_height = 60
-                    box_x = self.screen_width // 2 - box_width // 2
-                    box_y = y - 10
-                    level_rect = pygame.Rect(box_x, box_y, box_width, box_height)
+                    card_height = 65
+                    card_y = y - (card_height - 65) // 2
+                    level_rect = pygame.Rect(card_x, card_y, card_width, card_height)
                     if level_rect.collidepoint(mouse_pos):
                         return f"start_level_{i + 1}"
         return None
 
     def draw(self):
-        """Draw level selection menu"""
-        self.screen.fill(self.background_color)
+        """Draw level selection with improved card layout design"""
+        # Elegant background
+        color1 = (15, 30, 55)
+        color2 = (35, 50, 100)
+        self.draw_gradient_background(color1, color2)
+
+        # Add subtle grid pattern
+        grid_color = (25, 35, 70)
+        for x in range(0, self.screen_width, 60):
+            pygame.draw.line(self.screen, grid_color, (x, 0), (x, self.screen_height), 1)
+        for y in range(0, self.screen_height, 60):
+            pygame.draw.line(self.screen, grid_color, (0, y), (self.screen_width, y), 1)
 
         # Title
-        self.draw_text("SELECT DIFFICULTY", self.font_large, self.highlight_color,
-                      self.screen_width // 2, 100)
+        title_y = 50
+        title_color = (100, 255, 120)
+        self.draw_text("SELECT DIFFICULTY", self.font_large, title_color,
+                      self.screen_width // 2, title_y, shadow=True)
+        
+        subtitle_color = (150, 180, 220)
+        self.draw_text("Choose your challenge", self.font_small, subtitle_color,
+                      self.screen_width // 2, title_y + 50)
 
-        # Level options
-        start_y = 200
+        # Level options with redesigned card layout
+        start_y = 140
         level_height = 80
+        card_width = 700
+        card_x = (self.screen_width - card_width) // 2
 
         for i in range(self.max_level):
             y = start_y + i * level_height
             is_selected = (i == self.selected_level)
 
-            # Level name
-            level_name = self.level_names[i] if i < len(self.level_names) else f"Level {i + 1}"
-            color = self.highlight_color if is_selected else self.text_color
+            # Smooth scale animation
+            target_scale = 1.06 if is_selected else 1.0
+            self.level_scales[i] += (target_scale - self.level_scales[i]) * 0.12
 
-            # Draw level box
-            box_width = 400
-            box_height = 60
-            box_x = self.screen_width // 2 - box_width // 2
-            box_y = y - 10
+            # Card dimensions
+            card_height = int(65 * self.level_scales[i])
+            card_y = y - (card_height - 65) // 2
 
-            # Enhanced box background with gradient
+            # Card background gradient
             if is_selected:
-                # Gradient effect for selected level
-                for i in range(box_height):
-                    shade = int(120 - i * 0.5)
-                    line_color = (shade, shade, shade + 20)
+                # Animated gradient for selected
+                grad_start = (70, 110, 200)
+                grad_end = (100, 140, 230)
+                
+                for draw_y in range(card_height):
+                    progress = draw_y / card_height
+                    line_color = tuple(
+                        int(grad_start[j] + (grad_end[j] - grad_start[j]) * progress)
+                        for j in range(3)
+                    )
                     pygame.draw.line(self.screen, line_color, 
-                                   (box_x, box_y + i), (box_x + box_width, box_y + i))
-                border_color = (255, 255, 100)
+                                   (card_x, card_y + draw_y), (card_x + card_width, card_y + draw_y))
+                
+                # Glow effect
+                for offset in [6, 4, 2]:
+                    glow_surface = pygame.Surface((card_width + offset * 2, card_height + offset * 2))
+                    glow_surface.set_alpha(15)
+                    glow_surface.fill((100, 180, 255))
+                    self.screen.blit(glow_surface, (card_x - offset, card_y - offset))
+                
+                border_color = (100, 200, 255)
                 border_width = 3
             else:
-                box_color = (60, 60, 80)
-                pygame.draw.rect(self.screen, box_color, (box_x, box_y, box_width, box_height))
-                border_color = (150, 150, 150)
+                # Unselected card background
+                card_color = (35, 60, 130)
+                pygame.draw.rect(self.screen, card_color, (card_x, card_y, card_width, card_height))
+                border_color = (80, 120, 180)
                 border_width = 2
             
-            pygame.draw.rect(self.screen, border_color, (box_x, box_y, box_width, box_height), border_width)
+            # Draw card border
+            pygame.draw.rect(self.screen, border_color, (card_x, card_y, card_width, card_height), border_width)
+            
+            # Content inside card
+            level_name = self.level_names[i] if i < len(self.level_names) else f"Level {i + 1}"
+            
+            # Level number - left side
+            level_num_color = (255, 255, 100) if is_selected else (200, 200, 200)
+            self.draw_text(f"LEVEL {i + 1}", self.font_small, level_num_color,
+                          card_x + 30, card_y + card_height // 2, center=False)
+            
+            # Level name - center left
+            level_name_color = (255, 255, 255) if is_selected else (220, 220, 220)
+            self.draw_text(level_name, self.font_medium, level_name_color,
+                          card_x + 120, card_y + card_height // 2, center=False)
+            
+            # Difficulty badges on the right
+            obstacles = self.obstacle_counts[i] if i < len(self.obstacle_counts) else 0
+            speed = self.speed_multipliers[i] if i < len(self.speed_multipliers) else 1.0
+            
+            # Speed badge
+            speed_badge_x = card_x + card_width - 320
+            speed_badge_y = card_y + card_height // 2 - 12
+            speed_badge_width = 120
+            speed_badge_height = 24
+            
+            speed_badge_color = (100, 180, 100) if is_selected else (80, 140, 80)
+            pygame.draw.rect(self.screen, speed_badge_color, 
+                           (speed_badge_x, speed_badge_y, speed_badge_width, speed_badge_height))
+            pygame.draw.rect(self.screen, (150, 220, 150) if is_selected else (120, 180, 120),
+                           (speed_badge_x, speed_badge_y, speed_badge_width, speed_badge_height), 1)
+            
+            badge_text_color = (255, 255, 255) if is_selected else (220, 220, 220)
+            self.draw_text(f"Speed: {speed}x", self.font_small, badge_text_color,
+                          speed_badge_x + speed_badge_width // 2, speed_badge_y + speed_badge_height // 2)
+            
+            # Obstacles badge
+            obs_badge_x = card_x + card_width - 160
+            obs_badge_y = card_y + card_height // 2 - 12
+            obs_badge_width = 130
+            obs_badge_height = 24
+            
+            obs_badge_color = (200, 100, 100) if is_selected else (160, 80, 80)
+            pygame.draw.rect(self.screen, obs_badge_color,
+                           (obs_badge_x, obs_badge_y, obs_badge_width, obs_badge_height))
+            pygame.draw.rect(self.screen, (220, 150, 150) if is_selected else (180, 120, 120),
+                           (obs_badge_x, obs_badge_y, obs_badge_width, obs_badge_height), 1)
+            
+            self.draw_text(f"Obstacles: {obstacles}", self.font_small, badge_text_color,
+                          obs_badge_x + obs_badge_width // 2, obs_badge_y + obs_badge_height // 2)
+            
+            # Particle effects on selection
+            if is_selected and self.animation_timer % 20 == 0:
+                self.spawn_particles(card_x + card_width // 2,
+                                   card_y + card_height // 2,
+                                   count=2, color=(100, 200, 255))
 
-            # Level name with shadow (centered in box)
-            self.draw_text(level_name, self.font_medium, color,
-                          self.screen_width // 2, y + 15, shadow=True)
+        # Draw particles
+        self.draw_animated_particles()
 
         # Instructions
-        self.draw_text("Use ARROW KEYS or MOUSE to select, ENTER or CLICK to start",
-                      self.font_small, self.text_color,
-                      self.screen_width // 2, self.screen_height - 100)
-        self.draw_text("Press ESC to go back",
-                      self.font_small, self.text_color,
-                      self.screen_width // 2, self.screen_height - 50)
+        instr_color = (140, 160, 200)
+        self.draw_text("Use UP/DOWN arrow keys or mouse to select | ENTER to start | ESC to back",
+                      self.font_small, instr_color,
+                      self.screen_width // 2, self.screen_height - 40)
 
         self.update_animation()
 
@@ -252,7 +381,6 @@ class GameOverMenu(Menu):
         key_actions = {
             pygame.K_r: "restart",
             pygame.K_m: "menu",
-            pygame.K_q: "quit",
             pygame.K_h: None
         }
         
@@ -272,9 +400,9 @@ class GameOverMenu(Menu):
         mouse_pos = pygame.mouse.get_pos()
         
         # Simple click areas for actions
-        actions = ["restart", "menu", None, "quit"]
+        actions = ["restart", "menu", None]
         start_y = 400
-        for i in range(4):
+        for i in range(3):
             y = start_y + i * 40
             text_rect = pygame.Rect(self.screen_width // 2 - 100, y - 15, 200, 30)
             if text_rect.collidepoint(mouse_pos):
@@ -286,49 +414,109 @@ class GameOverMenu(Menu):
         return None
 
     def draw(self):
-        """Draw game over screen"""
+        """Draw game over screen with modern web-friendly design"""
         if self.show_high_score:
             self.high_score_menu.draw()
             return
 
-        self.screen.fill(self.background_color)
+        # Dark elegant background
+        color1 = (20, 15, 35)
+        color2 = (40, 25, 60)
+        self.draw_gradient_background(color1, color2)
 
-        # Game Over text with enhanced animation
-        game_over_y = 150 + int(5 * math.sin(self.animation_timer * 0.1))
+        # Add subtle grid pattern
+        grid_color = (30, 25, 45)
+        for x in range(0, self.screen_width, 50):
+            pygame.draw.line(self.screen, grid_color, (x, 0), (x, self.screen_height), 1)
+        for y in range(0, self.screen_height, 50):
+            pygame.draw.line(self.screen, grid_color, (0, y), (self.screen_width, y), 1)
+
+        # Game Over text - dramatic red with glow
+        game_over_y = 90
         
-        # Pulsing red effect
-        red_intensity = int(200 + 55 * math.sin(self.animation_timer * 0.08))
-        game_over_color = (red_intensity, 50, 50)
-        
-        # Draw with glow effect
-        for offset in range(1, 3):
-            glow_color = (red_intensity // 3, 20, 20)
+        # Multi-layer glow effect
+        for layer in range(5, 0, -1):
+            glow_alpha = int(40 / layer)
+            glow_color = (255 - glow_alpha, 30, 30)
+            offset = layer * 1
             self.draw_text("GAME OVER", self.font_large, glow_color,
                           self.screen_width // 2 + offset, game_over_y + offset)
         
+        # Main title - bright red
+        game_over_color = (255, 80, 80)
         self.draw_text("GAME OVER", self.font_large, game_over_color,
                       self.screen_width // 2, game_over_y, shadow=True)
 
-        # Final score with highlight
-        self.draw_text(f"Final Score: {self.final_score:06d}", self.font_medium, self.highlight_color,
-                      self.screen_width // 2, 250, shadow=True)
-
+        # Score display - elegant card-style
+        card_y = 200
+        card_width = 500
+        card_height = 100
+        card_x = (self.screen_width - card_width) // 2
+        
+        # Card background with gradient
+        for draw_y in range(card_height):
+            progress = draw_y / card_height
+            line_color = (
+                int(50 + (80 - 50) * progress),
+                int(60 + (90 - 60) * progress),
+                int(120 + (150 - 120) * progress)
+            )
+            pygame.draw.line(self.screen, line_color,
+                           (card_x, card_y + draw_y), (card_x + card_width, card_y + draw_y))
+        
+        # Card border
+        pygame.draw.rect(self.screen, (100, 150, 200), (card_x, card_y, card_width, card_height), 3)
+        
+        # Score with pulsing effect
+        pulse_intensity = int(50 * math.sin(self.animation_timer * 0.05))
+        score_color = (200 + pulse_intensity, 255, 150 + pulse_intensity)
+        self.draw_text(f"Final Score: {self.final_score:06d}", self.font_large, score_color,
+                      self.screen_width // 2, card_y + 35, shadow=True)
+        
         # Level reached
-        self.draw_text(f"Level Reached: {self.level}", self.font_medium, self.text_color,
-                      self.screen_width // 2, 300, shadow=True)
+        level_color = (150, 220, 255)
+        self.draw_text(f"Level: {self.level}", self.font_medium, level_color,
+                      self.screen_width // 2, card_y + 75, shadow=False)
 
-        # Options
+        # Options with modern button design
         options = [
-            ("R - Play Again", (0, 255, 0)),
-            ("M - Main Menu", (255, 255, 0)),
-            ("H - High Scores", (0, 255, 255)),
-            ("Q - Quit", (255, 0, 0))
+            ("Play Again", "R", (0, 200, 100)),
+            ("Main Menu", "M", (200, 150, 50)),
+            ("High Scores", "H", (100, 150, 255))
         ]
 
-        start_y = 400
-        for i, (text, color) in enumerate(options):
-            y = start_y + i * 40
-            self.draw_text(text, self.font_medium, color, self.screen_width // 2, y, shadow=True)
+        button_y = 350
+        button_spacing = 65
+        
+        for i, (text, key, base_color) in enumerate(options):
+            y = button_y + i * button_spacing
+            
+            # Simple button rectangle with text
+            button_width = 300
+            button_height = 45
+            button_x = self.screen_width // 2 - button_width // 2
+            
+            # Button background
+            hover_color = tuple(min(255, c + 40) for c in base_color)
+            pygame.draw.rect(self.screen, base_color, (button_x, y, button_width, button_height))
+            
+            # Button border
+            pygame.draw.rect(self.screen, hover_color, (button_x, y, button_width, button_height), 2)
+            
+            # Button text with key hint
+            button_text = f"[{key}] {text}"
+            text_color = (255, 255, 255)
+            self.draw_text(button_text, self.font_medium, text_color,
+                          button_x + button_width // 2, y + button_height // 2, shadow=False)
+        
+        # Particles
+        self.draw_animated_particles()
+
+        # Footer message
+        footer_color = (150, 170, 200)
+        self.draw_text("Press R, M, or H to select | ESC to go back",
+                      self.font_small, footer_color,
+                      self.screen_width // 2, self.screen_height - 50)
 
         self.update_animation()
 

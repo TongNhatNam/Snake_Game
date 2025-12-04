@@ -21,8 +21,8 @@ class GameState:
         # Game area
         self.game_area_width = 400
         self.game_area_height = 400
-        self.game_area_x = 50
-        self.game_area_y = 50
+        self.game_area_x = 300
+        self.game_area_y = 150
         
         # Multiplayer state
         self.player1_score = 0

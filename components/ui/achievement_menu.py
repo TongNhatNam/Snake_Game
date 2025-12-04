@@ -68,12 +68,20 @@ class AchievementMenu(Menu):
         self.selected_achievement = None
     
     def draw(self):
-        """Draw achievement menu"""
-        self.screen.fill(self.background_color)
+        """Draw achievement menu with modern styling"""
+        # Animated gradient background
+        gradient_offset = int(50 * math.sin(self.animation_timer * 0.02))
+        color1 = (20, 40, 60)
+        color2 = (40, 60 + gradient_offset // 2, 120)
+        self.draw_gradient_background(color1, color2)
         
         # Title
-        self.draw_text("ACHIEVEMENTS", self.font_large, self.highlight_color,
-                      self.screen_width // 2, 50)
+        title_y = 50 + int(8 * math.sin(self.animation_timer * 0.04))
+        title_color = (100 + int(100 * math.sin(self.animation_timer * 0.05)),
+                      200 + int(50 * math.sin(self.animation_timer * 0.06)),
+                      100 + int(50 * math.sin(self.animation_timer * 0.07)))
+        self.draw_text("ACHIEVEMENTS", self.font_large, title_color,
+                      self.screen_width // 2, title_y, shadow=True)
         
         # Achievement list organized by type
         achievements = achievement_manager.get_achievements_by_type()
@@ -85,26 +93,24 @@ class AchievementMenu(Menu):
         persistent_total = len(achievements["persistent"]["unlocked"]) + len(achievements["persistent"]["locked"])
         
         progress_text = f"Session: {session_count}/{session_total} | Persistent: {persistent_count}/{persistent_total}"
-        self.draw_text(progress_text, self.font_medium, self.text_color,
-                      self.screen_width // 2, 90)
+        progress_color = (150, 200, 255)
+        self.draw_text(progress_text, self.font_medium, progress_color,
+                      self.screen_width // 2, 110, shadow=True)
         
         # Combine all achievements for display
         session_achievements = achievements["session"]["unlocked"] + achievements["session"]["locked"]
         persistent_achievements = achievements["persistent"]["unlocked"] + achievements["persistent"]["locked"]
-        all_achievements = session_achievements + persistent_achievements
-        
-
         
         # Draw achievements
         start_y = 120 - self.scroll_offset
-        
         current_y = start_y
         
         # Draw session achievements section
         if session_achievements:
             section_y = current_y - self.scroll_offset
             if section_y > 50 and section_y < self.screen_height - 50:
-                self.draw_text("SESSION ACHIEVEMENTS", self.font_medium, (255, 255, 100),
+                section_color = (150, 200, 100)
+                self.draw_text("SESSION ACHIEVEMENTS", self.font_medium, section_color,
                               70, section_y, center=False)
             current_y += 40
             
@@ -119,7 +125,8 @@ class AchievementMenu(Menu):
             current_y += 20  # Extra spacing
             section_y = current_y - self.scroll_offset
             if section_y > 50 and section_y < self.screen_height - 50:
-                self.draw_text("PERSISTENT ACHIEVEMENTS", self.font_medium, (100, 255, 100),
+                section_color = (100, 200, 100)
+                self.draw_text("PERSISTENT ACHIEVEMENTS", self.font_medium, section_color,
                               70, section_y, center=False)
             current_y += 40
             
@@ -138,9 +145,13 @@ class AchievementMenu(Menu):
         if self.max_scroll > 0:
             self._draw_scrollbar()
         
+        # Draw particles
+        self.draw_animated_particles()
+        
         # Instructions
+        instr_color = (180, 180, 200)
         self.draw_text("ESC to go back | Mouse wheel or UP/DOWN to scroll",
-                      self.font_small, self.text_color,
+                      self.font_small, instr_color,
                       self.screen_width // 2, self.screen_height - 30)
         
         self.update_animation()
@@ -150,9 +161,9 @@ class AchievementMenu(Menu):
         is_unlocked = achievement.unlocked
         is_selected = (achievement == self.selected_achievement)
         
-        # Background
+        # Background with gradient
         if is_selected:
-            bg_color = (80, 80, 120) if is_unlocked else (60, 60, 80)
+            bg_color = (80, 80, 120)
             border_color = (255, 255, 100)
             border_width = 2
         else:
@@ -160,8 +171,17 @@ class AchievementMenu(Menu):
             border_color = (100, 100, 120)
             border_width = 1
         
+        # Draw gradient background
+        for draw_y in range(height):
+            progress = draw_y / height
+            if is_selected:
+                line_color = (int(80 + 40 * progress), int(80 + 40 * progress), 
+                            int(120 + 30 * progress))
+            else:
+                line_color = bg_color
+            pygame.draw.line(self.screen, line_color, (x, y + draw_y), (x + width, y + draw_y))
+        
         rect = pygame.Rect(x, y, width, height)
-        pygame.draw.rect(self.screen, bg_color, rect, border_radius=8)
         pygame.draw.rect(self.screen, border_color, rect, border_width, border_radius=8)
         
         # Icon
@@ -199,9 +219,10 @@ class AchievementMenu(Menu):
         
         # Text
         text_x = icon_x + icon_size + 15
-        text_color = self.highlight_color if is_unlocked else (150, 150, 150)
+        text_color = (255, 255, 100) if is_unlocked else (150, 150, 150)
         
-        # Achievement name
+        # Achievement name with animation
+        name_scale = 1.05 if is_selected else 1.0
         self.draw_text(achievement.name, self.font_medium, text_color,
                       text_x, y + 20, center=False)
         
@@ -260,7 +281,7 @@ class AchievementMenu(Menu):
         thumb_height = max(20, int(bar_height * (bar_height / (bar_height + self.max_scroll))))
         thumb_y = bar_y + int((self.scroll_offset / self.max_scroll) * (bar_height - thumb_height))
         
-        pygame.draw.rect(self.screen, (150, 150, 150),
+        pygame.draw.rect(self.screen, (200, 150, 100),
                         (bar_x, thumb_y, bar_width, thumb_height), border_radius=4)
 
 class AchievementNotification:

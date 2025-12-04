@@ -106,25 +106,90 @@ class Snake:
                     self.power_ups[power_up] = False
     
     def draw(self, surface):
-        """Draw the snake with optimized rendering"""
+        """Draw the snake with modern design"""
         try:
             snake_color = config.get_color('snake')
             head_color = config.get_color('snake_head')
             
             for i, block in enumerate(self.body):
-                # Simple color selection
-                color = head_color if i == len(self.body) - 1 else snake_color
+                is_head = (i == len(self.body) - 1)
+                color = head_color if is_head else snake_color
                 
-                # Power-up glow effect (simplified)
-                if i == len(self.body) - 1 and any(self.power_ups.values()):
-                    color = tuple(min(255, c + 30) for c in color)
+                # Power-up glow effect
+                if is_head and any(self.power_ups.values()):
+                    color = tuple(min(255, c + 50) for c in color)
                 
-                # Draw body segment
-                rect = pygame.Rect(block[0], block[1], self.block_size, self.block_size)
-                pygame.draw.rect(surface, color, rect)
-                pygame.draw.rect(surface, (0, 0, 0), rect, 1)
-        except (pygame.error, AttributeError, ValueError) as e:
-            # Handle drawing errors gracefully
+                x, y = int(block[0]), int(block[1])
+                
+                # Draw body segment with modern style
+                if is_head:
+                    self._draw_head(surface, x, y, color)
+                else:
+                    self._draw_body_segment(surface, x, y, color, i == len(self.body) - 2)
+        except (pygame.error, AttributeError, ValueError, TypeError):
+            pass
+    
+    def _draw_head(self, surface, x, y, color):
+        """Draw snake head with eyes and modern design"""
+        try:
+            # Main head
+            rect = pygame.Rect(x, y, self.block_size, self.block_size)
+            
+            # Draw head base
+            pygame.draw.rect(surface, color, rect)
+            
+            # Head border
+            lighter_color = tuple(min(255, c + 40) for c in color)
+            pygame.draw.rect(surface, lighter_color, rect, 2)
+            
+            # Draw eyes based on direction
+            eye_color = (0, 0, 0)  # Black eyes
+            eye_outline = (255, 255, 255)  # White outline
+            eye_size = 3
+            
+            center_x = x + self.block_size // 2
+            center_y = y + self.block_size // 2
+            
+            # Determine eye positions based on movement direction
+            if self.x_change > 0:  # Moving right
+                left_eye = (center_x + 4, center_y - 3)
+                right_eye = (center_x + 4, center_y + 3)
+            elif self.x_change < 0:  # Moving left
+                left_eye = (center_x - 4, center_y - 3)
+                right_eye = (center_x - 4, center_y + 3)
+            elif self.y_change > 0:  # Moving down
+                left_eye = (center_x - 3, center_y + 4)
+                right_eye = (center_x + 3, center_y + 4)
+            else:  # Moving up (default)
+                left_eye = (center_x - 3, center_y - 4)
+                right_eye = (center_x + 3, center_y - 4)
+            
+            pygame.draw.circle(surface, eye_color, left_eye, eye_size)
+            pygame.draw.circle(surface, eye_color, right_eye, eye_size)
+            pygame.draw.circle(surface, eye_outline, left_eye, eye_size, 1)
+            pygame.draw.circle(surface, eye_outline, right_eye, eye_size, 1)
+            
+        except Exception:
+            pass
+    
+    def _draw_body_segment(self, surface, x, y, color, is_neck=False):
+        """Draw body segment with gradient effect"""
+        try:
+            rect = pygame.Rect(x, y, self.block_size, self.block_size)
+            
+            # Main body
+            segment_color = color if not is_neck else tuple(min(255, c + 20) for c in color)
+            pygame.draw.rect(surface, segment_color, rect)
+            
+            # Border
+            border_color = tuple(min(255, c + 30) for c in color)
+            pygame.draw.rect(surface, border_color, rect, 1)
+            
+            if is_neck:
+                highlight_color = tuple(min(255, c + 50) for c in color)
+                pygame.draw.line(surface, highlight_color, 
+                               (x + 2, y + 2), (x + self.block_size - 2, y + 2), 1)
+        except Exception:
             pass
     
     def check_collision(self):
@@ -167,7 +232,10 @@ class Snake:
     def check_obstacle_collision(self, obstacles):
         """Check collision with obstacles"""
         try:
-            # Wall pass does NOT protect against obstacles
+            # If wall_pass power-up is active, allow passing through obstacles
+            if self.power_ups.get('wall_pass'):
+                return False
+
             head_rect = pygame.Rect(self.x, self.y, self.block_size, self.block_size)
             return any(head_rect.colliderect(obstacle.rect) for obstacle in obstacles)
         except (AttributeError, TypeError):

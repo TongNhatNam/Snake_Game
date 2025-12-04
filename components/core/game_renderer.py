@@ -147,10 +147,14 @@ class GameRenderer:
     
     def draw_game(self, game_objects, game_state):
         """Draw game elements"""
-        # Clear screen
+        # Clear screen with a dark gradient background
         self.screen.fill(config.get_color('background'))
         
-        # Draw game area border - optimized
+        # Draw colored background around game area
+        background_color = (20, 20, 40)  # Dark blue/purple
+        pygame.draw.rect(self.screen, background_color, 
+                        (0, 0, self.screen_width, self.screen_height))
+        
         try:
             game_area = {
                 'x': game_state.game_area_x,
@@ -159,12 +163,10 @@ class GameRenderer:
                 'height': game_state.game_area_height
             }
             
-            # Fill game area background first
             game_bg = pygame.Rect(game_area['x'], game_area['y'], 
                                  game_area['width'], game_area['height'])
             pygame.draw.rect(self.screen, (255, 255, 255), game_bg)
             
-            # Draw border
             pygame.draw.rect(self.screen, (30, 30, 30), game_bg, 2)
         except Exception:
             pass
